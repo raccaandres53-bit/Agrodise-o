@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "AgroViajes",
+    "slug": "agroviajes",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.agroviajes.app"
+    },
+    "android": {
+      "package": "com.agroviajes.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "AgroViajes usa tu ubicaci\u00f3n para consultar el GPS durante tus viajes."
+        }
+      ]
+    ],
+    "scheme": "agroviajes"
+  }
+}
