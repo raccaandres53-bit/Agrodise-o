@@ -19,7 +19,7 @@ function buildUI(){
       </div>
       <div class="module-cards">
         <button class="module-card" id="goWorkshop"><div class="module-icon">🛠️</div><div class="module-name">Taller</div><div class="module-desc">Órdenes de trabajo, clientes, máquinas, reparaciones, fotos e historial.</div></button>
-        <button class="module-card" id="goSpares"><div class="module-icon">⚙️</div><div class="module-name">Repuestos</div><div class="module-desc">Proveedores, contactos, direcciones y rubros para compras y abastecimiento.</div></button>
+        <button class="module-card" id="goSpares"><div class="module-icon">⚙️</div><div class="module-name">Repuestos</div><div class="module-desc">Proveedores, emails, direcciones y rubros para compras y abastecimiento.</div></button>
       </div>
     </div>
   </div>
@@ -33,9 +33,9 @@ function buildUI(){
       </aside>
       <main class="spares-main">
         <div class="spares-toolbar"><div><h1 style="margin:0">Proveedores</h1><div class="sub">Directorio de proveedores para repuestos e insumos</div></div><div class="spares-toolbar-actions"><button class="btn dark" id="manageCategories">Rubros</button><button class="btn red" id="newSupplier">+ Nuevo proveedor</button></div></div>
-        <div class="spares-filters"><input id="supplierSearch" class="spares-input" placeholder="Buscar por número, nombre, contacto o dirección..."><select id="categoryFilter" class="spares-select"><option value="">Todos los rubros</option></select></div>
+        <div class="spares-filters"><input id="supplierSearch" class="spares-input" placeholder="Buscar por número, nombre, email o dirección..."><select id="categoryFilter" class="spares-select"><option value="">Todos los rubros</option></select></div>
         <div id="supplierCount" class="spares-count"></div>
-        <div class="spares-table-wrap"><table class="spares-table"><thead><tr><th>Número</th><th>Proveedor</th><th>Contacto</th><th>Rubro</th><th>Dirección</th></tr></thead><tbody id="supplierRows"></tbody></table></div>
+        <div class="spares-table-wrap"><table class="spares-table"><thead><tr><th>Número</th><th>Proveedor</th><th>Email</th><th>Rubro</th><th>Dirección</th></tr></thead><tbody id="supplierRows"></tbody></table></div>
       </main>
     </div>
   </div>
@@ -45,7 +45,7 @@ function buildUI(){
     <div class="spares-grid" style="margin-top:16px">
       <div class="spares-field"><label>Número</label><input id="supplierNumber" placeholder="Ej. 001"></div>
       <div class="spares-field"><label>Nombre</label><input id="supplierName" placeholder="Nombre del proveedor"></div>
-      <div class="spares-field"><label>Contacto</label><input id="supplierContact" placeholder="Teléfono / WhatsApp / email"></div>
+      <div class="spares-field"><label>Email</label><input id="supplierContact" type="email" placeholder="proveedor@empresa.com"></div>
       <div class="spares-field"><label>Rubro</label><select id="supplierCategory"></select></div>
       <div class="spares-field" style="grid-column:1/-1"><label>Dirección</label><input id="supplierAddress" placeholder="Localidad, calle, dirección..."></div>
     </div>
@@ -136,7 +136,9 @@ function openSupplier(id=null){
 }
 async function saveSupplier(){
   const name=$('supplierName').value.trim();if(!name){alert('Ingresá el nombre del proveedor.');return}
-  const row={supplier_number:$('supplierNumber').value.trim()||null,name,contact:$('supplierContact').value.trim()||null,category_id:$('supplierCategory').value?Number($('supplierCategory').value):null,address:$('supplierAddress').value.trim()||null,updated_at:new Date().toISOString()};
+  const email=$('supplierContact').value.trim();
+  if(email && !$('supplierContact').checkValidity()){alert('Ingresá un email válido.');return}
+  const row={supplier_number:$('supplierNumber').value.trim()||null,name,contact:email||null,category_id:$('supplierCategory').value?Number($('supplierCategory').value):null,address:$('supplierAddress').value.trim()||null,updated_at:new Date().toISOString()};
   const res=editingId?await sb.from('suppliers').update(row).eq('id',editingId):await sb.from('suppliers').insert(row);
   if(res.error){alert(res.error.message);return}
   $('supplierModal').classList.remove('show');await loadSparesData();
