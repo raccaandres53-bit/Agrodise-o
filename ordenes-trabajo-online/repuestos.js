@@ -1,0 +1,177 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.117.3';
+
+const SUPABASE_URL='https://dcmlbriqiybegmwanwlf.supabase.co';
+const SUPABASE_KEY='sb_publishable_a2lQbgcdZ8fa9ANiOT5dIA_qyH0b_B_';
+const sb=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+let suppliers=[],categories=[],editingId=null,pickerShownForSession=false;
+
+function buildUI(){
+  if($('modulePicker'))return;
+  document.body.insertAdjacentHTML('beforeend',`
+  <div id="modulePicker" class="module-picker hidden">
+    <div class="module-picker-box">
+      <div class="module-picker-head">
+        <div class="module-picker-logo">AGRO<b>DISEÑO</b></div>
+        <div class="module-picker-title">¿A qué módulo querés ingresar?</div>
+        <div class="module-picker-sub">Elegí una opción para continuar.</div>
+      </div>
+      <div class="module-cards">
+        <button class="module-card" id="goWorkshop"><div class="module-icon">🛠️</div><div class="module-name">Taller</div><div class="module-desc">Órdenes de trabajo, clientes, máquinas, reparaciones, fotos e historial.</div></button>
+        <button class="module-card" id="goSpares"><div class="module-icon">⚙️</div><div class="module-name">Repuestos</div><div class="module-desc">Proveedores, contactos, direcciones y rubros para compras y abastecimiento.</div></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="sparesApp" class="spares-app hidden">
+    <div class="spares-shell">
+      <aside class="spares-side">
+        <div class="brand">AGRO<b>DISEÑO</b></div><div class="sub">Módulo de repuestos</div>
+        <div class="spares-nav"><button id="sparesHomeBtn">▣ Proveedores</button><button id="categoriesBtn">▤ Rubros / categorías</button></div>
+        <div class="spares-side-bottom"><button class="switch-module" id="sparesSwitch">← Cambiar módulo</button><button class="switch-module" id="sparesLogout">Cerrar sesión</button></div>
+      </aside>
+      <main class="spares-main">
+        <div class="spares-toolbar"><div><h1 style="margin:0">Proveedores</h1><div class="sub">Directorio de proveedores para repuestos e insumos</div></div><div class="spares-toolbar-actions"><button class="btn dark" id="manageCategories">Rubros</button><button class="btn red" id="newSupplier">+ Nuevo proveedor</button></div></div>
+        <div class="spares-filters"><input id="supplierSearch" class="spares-input" placeholder="Buscar por número, nombre, contacto o dirección..."><select id="categoryFilter" class="spares-select"><option value="">Todos los rubros</option></select></div>
+        <div id="supplierCount" class="spares-count"></div>
+        <div class="spares-table-wrap"><table class="spares-table"><thead><tr><th>Número</th><th>Proveedor</th><th>Contacto</th><th>Rubro</th><th>Dirección</th></tr></thead><tbody id="supplierRows"></tbody></table></div>
+      </main>
+    </div>
+  </div>
+
+  <div class="spares-modal" id="supplierModal"><div class="spares-dialog">
+    <div class="head"><div><h2 id="supplierModalTitle" style="margin:0">Proveedor</h2><div class="sub">Datos de contacto y clasificación</div></div><button class="close" id="closeSupplier">×</button></div>
+    <div class="spares-grid" style="margin-top:16px">
+      <div class="spares-field"><label>Número</label><input id="supplierNumber" placeholder="Ej. 001"></div>
+      <div class="spares-field"><label>Nombre</label><input id="supplierName" placeholder="Nombre del proveedor"></div>
+      <div class="spares-field"><label>Contacto</label><input id="supplierContact" placeholder="Teléfono / WhatsApp / email"></div>
+      <div class="spares-field"><label>Rubro</label><select id="supplierCategory"></select></div>
+      <div class="spares-field" style="grid-column:1/-1"><label>Dirección</label><input id="supplierAddress" placeholder="Localidad, calle, dirección..."></div>
+    </div>
+    <div class="spares-actions"><button class="btn danger" id="deleteSupplier">Eliminar</button><button class="btn dark" id="cancelSupplier">Cancelar</button><button class="btn red" id="saveSupplier">Guardar proveedor</button></div>
+  </div></div>
+
+  <div class="spares-modal" id="categoryModal"><div class="spares-dialog">
+    <div class="head"><div><h2 style="margin:0">Rubros / categorías</h2><div class="sub">Creá las categorías que después usarás para filtrar proveedores.</div></div><button class="close" id="closeCategories">×</button></div>
+    <div class="category-add"><input id="newCategoryName" class="spares-input" placeholder="Ej. Hidráulica, Rodamientos, Electricidad..."><button class="btn red" id="addCategory">Agregar</button></div>
+    <div id="categoryList" class="category-list"></div>
+  </div></div>`);
+
+  const workshopAside=document.querySelector('#shell aside');
+  if(workshopAside && !$('workshopSwitch')){
+    const b=document.createElement('button');b.id='workshopSwitch';b.className='switch-module';b.textContent='← Cambiar módulo';
+    const ub=workshopAside.querySelector('.userbox');if(ub)ub.insertBefore(b,ub.firstChild);
+  }
+  bindUI();
+}
+
+function bindUI(){
+  $('goWorkshop').onclick=()=>openWorkshop();
+  $('goSpares').onclick=()=>openSpares();
+  $('workshopSwitch')?.addEventListener('click',showPicker);
+  $('sparesSwitch').onclick=showPicker;
+  $('sparesLogout').onclick=async()=>{await sb.auth.signOut();location.reload()};
+  $('newSupplier').onclick=()=>openSupplier();
+  $('closeSupplier').onclick=$('cancelSupplier').onclick=()=>$('supplierModal').classList.remove('show');
+  $('saveSupplier').onclick=saveSupplier;
+  $('deleteSupplier').onclick=deleteSupplier;
+  $('supplierSearch').oninput=renderSuppliers;
+  $('categoryFilter').onchange=renderSuppliers;
+  $('manageCategories').onclick=$('categoriesBtn').onclick=openCategories;
+  $('closeCategories').onclick=()=>$('categoryModal').classList.remove('show');
+  $('addCategory').onclick=addCategory;
+  $('newCategoryName').addEventListener('keydown',e=>{if(e.key==='Enter')addCategory()});
+  $('supplierModal').onclick=e=>{if(e.target.id==='supplierModal')$('supplierModal').classList.remove('show')};
+  $('categoryModal').onclick=e=>{if(e.target.id==='categoryModal')$('categoryModal').classList.remove('show')};
+}
+
+function showPicker(){
+  $('sparesApp').classList.add('hidden');
+  $('shell')?.classList.add('hidden');
+  $('modulePicker').classList.remove('hidden');
+}
+function openWorkshop(){
+  $('modulePicker').classList.add('hidden');
+  $('sparesApp').classList.add('hidden');
+  $('shell')?.classList.remove('hidden');
+}
+async function openSpares(){
+  $('modulePicker').classList.add('hidden');
+  $('shell')?.classList.add('hidden');
+  $('sparesApp').classList.remove('hidden');
+  await loadSparesData();
+}
+
+async function loadSparesData(){
+  const [{data:c,error:ce},{data:s,error:se}]=await Promise.all([
+    sb.from('supplier_categories').select('*').order('name'),
+    sb.from('suppliers').select('*,supplier_categories(id,name)').order('name')
+  ]);
+  if(ce||se){alert('No se pudieron cargar los proveedores. '+(ce?.message||se?.message||''));return}
+  categories=c||[];suppliers=s||[];fillCategorySelects();renderSuppliers();
+}
+function fillCategorySelects(){
+  const opts=categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  $('categoryFilter').innerHTML='<option value="">Todos los rubros</option>'+opts;
+  $('supplierCategory').innerHTML='<option value="">Sin rubro</option>'+opts;
+  renderCategoryList();
+}
+function renderSuppliers(){
+  const q=($('supplierSearch')?.value||'').trim().toLowerCase();
+  const cat=$('categoryFilter')?.value||'';
+  const rows=suppliers.filter(s=>{
+    const text=[s.supplier_number,s.name,s.contact,s.address,s.supplier_categories?.name].join(' ').toLowerCase();
+    return (!q||text.includes(q))&&(!cat||String(s.category_id)===cat);
+  });
+  $('supplierCount').textContent=`${rows.length} proveedor${rows.length===1?'':'es'}${cat?' en este rubro':''}`;
+  $('supplierRows').innerHTML=rows.length?rows.map(s=>`<tr class="spares-row" data-id="${s.id}"><td>${esc(s.supplier_number||'')}</td><td><b>${esc(s.name)}</b></td><td>${esc(s.contact||'')}</td><td>${s.supplier_categories?.name?`<span class="spares-rubro">${esc(s.supplier_categories.name)}</span>`:'—'}</td><td>${esc(s.address||'')}</td></tr>`).join(''):`<tr><td colspan="5" class="spares-empty">No hay proveedores para mostrar.</td></tr>`;
+  document.querySelectorAll('.spares-row').forEach(r=>r.onclick=()=>openSupplier(+r.dataset.id));
+}
+function openSupplier(id=null){
+  editingId=id;const s=id?suppliers.find(x=>x.id===id):null;
+  $('supplierModalTitle').textContent=id?'Editar proveedor':'Nuevo proveedor';
+  $('supplierNumber').value=s?.supplier_number||'';$('supplierName').value=s?.name||'';$('supplierContact').value=s?.contact||'';$('supplierCategory').value=s?.category_id||'';$('supplierAddress').value=s?.address||'';
+  $('deleteSupplier').style.display=id?'':'none';$('supplierModal').classList.add('show');
+}
+async function saveSupplier(){
+  const name=$('supplierName').value.trim();if(!name){alert('Ingresá el nombre del proveedor.');return}
+  const row={supplier_number:$('supplierNumber').value.trim()||null,name,contact:$('supplierContact').value.trim()||null,category_id:$('supplierCategory').value?Number($('supplierCategory').value):null,address:$('supplierAddress').value.trim()||null,updated_at:new Date().toISOString()};
+  const res=editingId?await sb.from('suppliers').update(row).eq('id',editingId):await sb.from('suppliers').insert(row);
+  if(res.error){alert(res.error.message);return}
+  $('supplierModal').classList.remove('show');await loadSparesData();
+}
+async function deleteSupplier(){
+  if(!editingId||!confirm('¿Eliminar este proveedor?'))return;
+  const {error}=await sb.from('suppliers').delete().eq('id',editingId);if(error){alert(error.message);return}
+  $('supplierModal').classList.remove('show');await loadSparesData();
+}
+function openCategories(){renderCategoryList();$('categoryModal').classList.add('show')}
+function renderCategoryList(){
+  $('categoryList').innerHTML=categories.length?categories.map(c=>`<div class="category-item"><span><b>${esc(c.name)}</b></span><button class="mini remove-category" data-id="${c.id}">Eliminar</button></div>`).join(''):'<div class="spares-empty">Todavía no hay rubros creados.</div>';
+  document.querySelectorAll('.remove-category').forEach(b=>b.onclick=()=>removeCategory(+b.dataset.id));
+}
+async function addCategory(){
+  const name=$('newCategoryName').value.trim();if(!name)return;
+  const {error}=await sb.from('supplier_categories').insert({name});if(error){alert(error.code==='23505'?'Ese rubro ya existe.':error.message);return}
+  $('newCategoryName').value='';await loadSparesData();renderCategoryList();
+}
+async function removeCategory(id){
+  const c=categories.find(x=>x.id===id);if(!c||!confirm(`¿Eliminar el rubro "${c.name}"? Los proveedores quedarán sin rubro.`))return;
+  const {error}=await sb.from('supplier_categories').delete().eq('id',id);if(error){alert(error.message);return}
+  await loadSparesData();renderCategoryList();
+}
+
+function watchLogin(){
+  const shell=$('shell');if(!shell)return;
+  const check=()=>{
+    const loggedIn=!shell.classList.contains('hidden') && $('login')?.classList.contains('hidden');
+    if(loggedIn&&!pickerShownForSession){pickerShownForSession=true;showPicker()}
+    if(!$('login')?.classList.contains('hidden'))pickerShownForSession=false;
+  };
+  new MutationObserver(check).observe(shell,{attributes:true,attributeFilter:['class']});
+  if($('login'))new MutationObserver(check).observe($('login'),{attributes:true,attributeFilter:['class']});
+  setTimeout(check,200);
+}
+
+buildUI();watchLogin();
