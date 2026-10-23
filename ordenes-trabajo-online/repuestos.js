@@ -6,6 +6,7 @@ const sb=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoR
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
 let suppliers=[],categories=[],editingId=null,pickerShownForSession=false;
+let supplierSort={key:'name',dir:'asc'};
 
 function buildUI(){
   if($('modulePicker'))return;
@@ -35,7 +36,7 @@ function buildUI(){
         <div class="spares-toolbar"><div><h1 style="margin:0">Proveedores</h1><div class="sub">Directorio de proveedores para repuestos e insumos</div></div><div class="spares-toolbar-actions"><button class="btn dark" id="manageCategories">Rubros</button><button class="btn red" id="newSupplier">+ Nuevo proveedor</button></div></div>
         <div class="spares-filters"><input id="supplierSearch" class="spares-input" placeholder="Buscar por número, nombre, email o dirección..."><select id="categoryFilter" class="spares-select"><option value="">Todos los rubros</option></select></div>
         <div id="supplierCount" class="spares-count"></div>
-        <div class="spares-table-wrap"><table class="spares-table"><thead><tr><th>Número</th><th>Proveedor</th><th>Email</th><th>Rubro</th><th>Dirección</th></tr></thead><tbody id="supplierRows"></tbody></table></div>
+        <div class="spares-table-wrap"><table class="spares-table"><thead><tr><th>Número</th><th id="sortSupplier" style="cursor:pointer">Proveedor ↕</th><th>Email</th><th id="sortCategory" style="cursor:pointer">Rubro ↕</th><th>Dirección</th></tr></thead><tbody id="supplierRows"></tbody></table></div>
       </main>
     </div>
   </div>
@@ -78,12 +79,25 @@ function bindUI(){
   $('deleteSupplier').onclick=deleteSupplier;
   $('supplierSearch').oninput=renderSuppliers;
   $('categoryFilter').onchange=renderSuppliers;
+  $('sortSupplier').onclick=()=>toggleSort('name');
+  $('sortCategory').onclick=()=>toggleSort('category');
   $('manageCategories').onclick=$('categoriesBtn').onclick=openCategories;
   $('closeCategories').onclick=()=>$('categoryModal').classList.remove('show');
   $('addCategory').onclick=addCategory;
   $('newCategoryName').addEventListener('keydown',e=>{if(e.key==='Enter')addCategory()});
   $('supplierModal').onclick=e=>{if(e.target.id==='supplierModal')$('supplierModal').classList.remove('show')};
   $('categoryModal').onclick=e=>{if(e.target.id==='categoryModal')$('categoryModal').classList.remove('show')};
+}
+
+function toggleSort(key){
+  if(supplierSort.key===key)supplierSort.dir=supplierSort.dir==='asc'?'desc':'asc';
+  else supplierSort={key,dir:'asc'};
+  renderSuppliers();
+}
+function sortLabel(id,key,label){
+  const el=$(id);if(!el)return;
+  const arrow=supplierSort.key===key?(supplierSort.dir==='asc'?' ↑':' ↓'):' ↕';
+  el.textContent=label+arrow;
 }
 
 function showPicker(){
@@ -124,6 +138,22 @@ function renderSuppliers(){
     const text=[s.supplier_number,s.name,s.contact,s.address,s.supplier_categories?.name].join(' ').toLowerCase();
     return (!q||text.includes(q))&&(!cat||String(s.category_id)===cat);
   });
+  rows.sort((a,b)=>{
+    let av,bv;
+    if(supplierSort.key==='category'){
+      av=(a.supplier_categories?.name||'Sin rubro').toLocaleLowerCase('es');
+      bv=(b.supplier_categories?.name||'Sin rubro').toLocaleLowerCase('es');
+      const byCategory=av.localeCompare(bv,'es',{sensitivity:'base'});
+      if(byCategory!==0)return supplierSort.dir==='asc'?byCategory:-byCategory;
+      return (a.name||'').localeCompare(b.name||'','es',{sensitivity:'base'});
+    }
+    av=(a.name||'').toLocaleLowerCase('es');
+    bv=(b.name||'').toLocaleLowerCase('es');
+    const byName=av.localeCompare(bv,'es',{sensitivity:'base'});
+    return supplierSort.dir==='asc'?byName:-byName;
+  });
+  sortLabel('sortSupplier','name','Proveedor');
+  sortLabel('sortCategory','category','Rubro');
   $('supplierCount').textContent=`${rows.length} proveedor${rows.length===1?'':'es'}${cat?' en este rubro':''}`;
   $('supplierRows').innerHTML=rows.length?rows.map(s=>`<tr class="spares-row" data-id="${s.id}"><td>${esc(s.supplier_number||'')}</td><td><b>${esc(s.name)}</b></td><td>${esc(s.contact||'')}</td><td>${s.supplier_categories?.name?`<span class="spares-rubro">${esc(s.supplier_categories.name)}</span>`:'—'}</td><td>${esc(s.address||'')}</td></tr>`).join(''):`<tr><td colspan="5" class="spares-empty">No hay proveedores para mostrar.</td></tr>`;
   document.querySelectorAll('.spares-row').forEach(r=>r.onclick=()=>openSupplier(+r.dataset.id));
