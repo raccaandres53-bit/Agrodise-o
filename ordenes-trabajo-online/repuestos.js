@@ -26,113 +26,54 @@ function rubroBadge(name,id){
 function digitsOnly(v){return String(v||'').replace(/\D/g,'')}
 function whatsappHref(v){const d=digitsOnly(v);return d?`https://wa.me/${d}`:''}
 function phoneHref(v){const p=String(v||'').trim();return p?`tel:${p.replace(/\s/g,'')}`:''}
-function contactActions(s){
-  const number=s.phone||s.whatsapp||'';
+function supplierNumber(s){return s.phone||s.whatsapp||''}
+function phoneCell(s){
+  const number=supplierNumber(s);if(!number)return '—';
   const wa=whatsappHref(number),tel=phoneHref(number);
-  const links=[];
-  if(wa)links.push(`<a href="${wa}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:7px;background:#1f8f4e;color:#fff;text-decoration:none;font-size:11px;font-weight:700">WhatsApp</a>`);
-  if(tel)links.push(`<a href="${esc(tel)}" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:7px;background:#2c2c31;color:#fff;text-decoration:none;font-size:11px;font-weight:700;border:1px solid #444">Llamar</a>`);
-  return links.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${links.join('')}</div>`:'';
+  return `<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span>${esc(number)}</span>${tel?`<a href="${esc(tel)}" onclick="event.stopPropagation()" title="Llamar" aria-label="Llamar" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#2c2c31;color:#fff;text-decoration:none;font-size:15px">📞</a>`:''}${wa?`<a href="${wa}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Abrir WhatsApp" aria-label="Abrir WhatsApp" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#1f8f4e;color:#fff;text-decoration:none;font-size:15px">💬</a>`:''}</div>`;
+}
+function favoriteButton(s){
+  const on=!!s.is_favorite;
+  return `<button class="favorite-star" data-favorite-id="${s.id}" onclick="event.stopPropagation()" title="${on?'Quitar de favoritos':'Agregar a favoritos'}" aria-label="${on?'Quitar de favoritos':'Agregar a favoritos'}" style="border:0;background:transparent;cursor:pointer;font-size:22px;line-height:1;padding:4px;color:${on?'#f5b301':'#777'}">${on?'★':'☆'}</button>`;
+}
+function sortRows(rows){
+  return [...rows].sort((a,b)=>{let av,bv;if(supplierSort.key==='category'){av=(a.supplier_categories?.name||'Sin rubro').toLocaleLowerCase('es');bv=(b.supplier_categories?.name||'Sin rubro').toLocaleLowerCase('es');const byCategory=av.localeCompare(bv,'es',{sensitivity:'base'});if(byCategory!==0)return supplierSort.dir==='asc'?byCategory:-byCategory;return(a.name||'').localeCompare(b.name||'','es',{sensitivity:'base'})}av=(a.name||'').toLocaleLowerCase('es');bv=(b.name||'').toLocaleLowerCase('es');const byName=av.localeCompare(bv,'es',{sensitivity:'base'});return supplierSort.dir==='asc'?byName:-byName});
+}
+function rowHtml(s){
+  return `<tr class="spares-row" data-id="${s.id}"><td style="width:44px;text-align:center">${favoriteButton(s)}</td><td><b>${esc(s.name)}</b>${s.tax_id?`<div class="sub">CUIT/CUIL ${esc(s.tax_id)}</div>`:''}</td><td>${esc(s.contact||'')}</td><td>${phoneCell(s)}</td><td>${rubroBadge(s.supplier_categories?.name,s.category_id)}</td><td>${esc(s.address||'')}</td></tr>`;
+}
+function tableHtml(rows,emptyText,sortable=false,bodyId=''){
+  return `<div class="spares-table-wrap"><table class="spares-table"><thead><tr><th style="width:44px"></th><th ${sortable?'id="sortSupplier" style="cursor:pointer"':''}>Proveedor${sortable?' ↕':''}</th><th>Email</th><th>Teléfono / WhatsApp</th><th ${sortable?'id="sortCategory" style="cursor:pointer"':''}>Rubro${sortable?' ↕':''}</th><th>Dirección</th></tr></thead><tbody ${bodyId?`id="${bodyId}"`:''}>${rows.length?rows.map(rowHtml).join(''):`<tr><td colspan="6" class="spares-empty">${emptyText}</td></tr>`}</tbody></table></div>`;
 }
 
 function buildUI(){
   if($('modulePicker'))return;
   document.body.insertAdjacentHTML('beforeend',`
-  <div id="modulePicker" class="module-picker hidden">
-    <div class="module-picker-box"><div class="module-picker-head"><div class="module-picker-logo">AGRO<b>DISEÑO</b></div><div class="module-picker-title">¿A qué módulo querés ingresar?</div><div class="module-picker-sub">Elegí una opción para continuar.</div></div>
-      <div class="module-cards"><button class="module-card" id="goWorkshop"><div class="module-icon">🛠️</div><div class="module-name">Taller</div><div class="module-desc">Órdenes de trabajo, clientes, máquinas, reparaciones, fotos e historial.</div></button><button class="module-card" id="goSpares"><div class="module-icon">⚙️</div><div class="module-name">Repuestos</div><div class="module-desc">Proveedores, contactos, pagos y rubros para compras y abastecimiento.</div></button></div>
-    </div>
-  </div>
-
-  <div id="sparesApp" class="spares-app hidden"><div class="spares-shell">
-    <aside class="spares-side"><div class="brand">AGRO<b>DISEÑO</b></div><div class="sub">Módulo de repuestos</div><div class="spares-nav"><button id="sparesHomeBtn">▣ Proveedores</button><button id="categoriesBtn">▤ Rubros / categorías</button></div><div class="spares-side-bottom"><button class="switch-module" id="sparesSwitch">← Cambiar módulo</button><button class="switch-module" id="sparesLogout">Cerrar sesión</button></div></aside>
-    <main class="spares-main">
-      <div class="spares-toolbar"><div><h1 style="margin:0">Proveedores</h1><div class="sub">Directorio de proveedores para repuestos e insumos</div></div><div class="spares-toolbar-actions"><button class="btn dark" id="manageCategories">Rubros</button><button class="btn red" id="newSupplier">+ Nuevo proveedor</button></div></div>
-      <div class="spares-filters"><input id="supplierSearch" class="spares-input" placeholder="Buscar por número, nombre, CUIT/CUIL, email, teléfono o dirección..."><select id="categoryFilter" class="spares-select"><option value="">Todos los rubros</option></select></div>
-      <div id="supplierCount" class="spares-count"></div>
-      <div class="spares-table-wrap"><table class="spares-table"><thead><tr><th>Número</th><th id="sortSupplier" style="cursor:pointer">Proveedor ↕</th><th>Email</th><th id="sortCategory" style="cursor:pointer">Rubro ↕</th><th>Dirección</th></tr></thead><tbody id="supplierRows"></tbody></table></div>
-    </main>
-  </div></div>
-
-  <div class="spares-modal" id="supplierModal"><div class="spares-dialog" style="width:min(920px,100%)">
-    <div class="head"><div><h2 id="supplierModalTitle" style="margin:0">Proveedor</h2><div class="sub">Datos comerciales, contacto y pago</div></div><button class="close" id="closeSupplier">×</button></div>
-
-    <div class="sec"><div class="sectop"><b>Datos generales</b></div><div class="spares-grid">
-      <div class="spares-field"><label>Número</label><input id="supplierNumber" placeholder="Ej. 001"></div>
-      <div class="spares-field"><label>Nombre</label><input id="supplierName" placeholder="Nombre del proveedor"></div>
-      <div class="spares-field"><label>CUIT / CUIL</label><input id="supplierTaxId" inputmode="numeric" placeholder="Ej. 30-12345678-9"></div>
-      <div class="spares-field"><label>Rubro</label><select id="supplierCategory"></select></div>
-      <div class="spares-field" style="grid-column:1/-1"><label>Dirección</label><input id="supplierAddress" placeholder="Localidad, calle, dirección..."></div>
-    </div></div>
-
-    <div class="sec"><div class="sectop"><b>Contacto</b></div><div class="spares-grid">
-      <div class="spares-field"><label>Email</label><input id="supplierContact" type="email" placeholder="proveedor@empresa.com"></div>
-      <div class="spares-field"><label>Teléfono / WhatsApp</label><input id="supplierPhone" type="tel" placeholder="Ej. 5493562123456"></div>
-    </div></div>
-
-    <div class="sec"><div class="sectop"><b>Datos bancarios</b></div><div class="spares-grid">
-      <div class="spares-field"><label>Banco</label><input id="supplierBankName" placeholder="Nombre del banco"></div>
-      <div class="spares-field"><label>Titular de la cuenta</label><input id="supplierBankHolder" placeholder="Titular"></div>
-      <div class="spares-field"><label>CBU / CVU</label><input id="supplierBankCbu" inputmode="numeric" placeholder="22 dígitos"></div>
-      <div class="spares-field"><label>Alias</label><input id="supplierBankAlias" placeholder="alias.de.pago"></div>
-    </div></div>
-
-    <div class="spares-actions"><button class="btn danger" id="deleteSupplier">Eliminar</button><button class="btn dark" id="cancelSupplier">Cancelar</button><button class="btn red" id="saveSupplier">Guardar proveedor</button></div>
-  </div></div>
-
+  <div id="modulePicker" class="module-picker hidden"><div class="module-picker-box"><div class="module-picker-head"><div class="module-picker-logo">AGRO<b>DISEÑO</b></div><div class="module-picker-title">¿A qué módulo querés ingresar?</div><div class="module-picker-sub">Elegí una opción para continuar.</div></div><div class="module-cards"><button class="module-card" id="goWorkshop"><div class="module-icon">🛠️</div><div class="module-name">Taller</div><div class="module-desc">Órdenes de trabajo, clientes, máquinas, reparaciones, fotos e historial.</div></button><button class="module-card" id="goSpares"><div class="module-icon">⚙️</div><div class="module-name">Repuestos</div><div class="module-desc">Proveedores, contactos, pagos y rubros para compras y abastecimiento.</div></button></div></div></div>
+  <div id="sparesApp" class="spares-app hidden"><div class="spares-shell"><aside class="spares-side"><div class="brand">AGRO<b>DISEÑO</b></div><div class="sub">Módulo de repuestos</div><div class="spares-nav"><button id="sparesHomeBtn">▣ Proveedores</button><button id="categoriesBtn">▤ Rubros / categorías</button></div><div class="spares-side-bottom"><button class="switch-module" id="sparesSwitch">← Cambiar módulo</button><button class="switch-module" id="sparesLogout">Cerrar sesión</button></div></aside><main class="spares-main"><div class="spares-toolbar"><div><h1 style="margin:0">Proveedores</h1><div class="sub">Directorio de proveedores para repuestos e insumos</div></div><div class="spares-toolbar-actions"><button class="btn dark" id="manageCategories">Rubros</button><button class="btn red" id="newSupplier">+ Nuevo proveedor</button></div></div><div class="spares-filters"><input id="supplierSearch" class="spares-input" placeholder="Buscar por nombre, CUIT/CUIL, email, teléfono, dirección o datos bancarios..."><select id="categoryFilter" class="spares-select"><option value="">Todos los rubros</option></select></div><div id="supplierCount" class="spares-count"></div><div id="supplierLists"></div></main></div></div>
+  <div class="spares-modal" id="supplierModal"><div class="spares-dialog" style="width:min(920px,100%)"><div class="head"><div><h2 id="supplierModalTitle" style="margin:0">Proveedor</h2><div class="sub">Datos comerciales, contacto y pago</div></div><button class="close" id="closeSupplier">×</button></div><div class="sec"><div class="sectop"><b>Datos generales</b></div><div class="spares-grid"><div class="spares-field"><label>Nombre</label><input id="supplierName" placeholder="Nombre del proveedor"></div><div class="spares-field"><label>CUIT / CUIL</label><input id="supplierTaxId" inputmode="numeric" placeholder="Ej. 30-12345678-9"></div><div class="spares-field"><label>Rubro</label><select id="supplierCategory"></select></div><div class="spares-field" style="grid-column:1/-1"><label>Dirección</label><input id="supplierAddress" placeholder="Localidad, calle, dirección..."></div></div></div><div class="sec"><div class="sectop"><b>Contacto</b></div><div class="spares-grid"><div class="spares-field"><label>Email</label><input id="supplierContact" type="email" placeholder="proveedor@empresa.com"></div><div class="spares-field"><label>Teléfono / WhatsApp</label><input id="supplierPhone" type="tel" placeholder="Ej. 5493562123456"></div></div></div><div class="sec"><div class="sectop"><b>Datos bancarios</b></div><div class="spares-grid"><div class="spares-field"><label>Banco</label><input id="supplierBankName" placeholder="Nombre del banco"></div><div class="spares-field"><label>Titular de la cuenta</label><input id="supplierBankHolder" placeholder="Titular"></div><div class="spares-field"><label>CBU / CVU</label><input id="supplierBankCbu" inputmode="numeric" placeholder="22 dígitos"></div><div class="spares-field"><label>Alias</label><input id="supplierBankAlias" placeholder="alias.de.pago"></div></div></div><div class="spares-actions"><button class="btn danger" id="deleteSupplier">Eliminar</button><button class="btn dark" id="cancelSupplier">Cancelar</button><button class="btn red" id="saveSupplier">Guardar proveedor</button></div></div></div>
   <div class="spares-modal" id="categoryModal"><div class="spares-dialog"><div class="head"><div><h2 style="margin:0">Rubros / categorías</h2><div class="sub">Creá las categorías que después usarás para filtrar proveedores.</div></div><button class="close" id="closeCategories">×</button></div><div class="category-add"><input id="newCategoryName" class="spares-input" placeholder="Ej. Hidráulica, Rodamientos, Electricidad..."><button class="btn red" id="addCategory">Agregar</button></div><div id="categoryList" class="category-list"></div></div></div>`);
-
-  const workshopAside=document.querySelector('#shell aside');
-  if(workshopAside && !$('workshopSwitch')){const b=document.createElement('button');b.id='workshopSwitch';b.className='switch-module';b.textContent='← Cambiar módulo';const ub=workshopAside.querySelector('.userbox');if(ub)ub.insertBefore(b,ub.firstChild)}
-  bindUI();
+  const workshopAside=document.querySelector('#shell aside');if(workshopAside && !$('workshopSwitch')){const b=document.createElement('button');b.id='workshopSwitch';b.className='switch-module';b.textContent='← Cambiar módulo';const ub=workshopAside.querySelector('.userbox');if(ub)ub.insertBefore(b,ub.firstChild)}bindUI();
 }
-
 function bindUI(){
-  $('goWorkshop').onclick=()=>openWorkshop();$('goSpares').onclick=()=>openSpares();$('workshopSwitch')?.addEventListener('click',showPicker);$('sparesSwitch').onclick=showPicker;$('sparesLogout').onclick=async()=>{await sb.auth.signOut();location.reload()};
-  $('newSupplier').onclick=()=>openSupplier();$('closeSupplier').onclick=$('cancelSupplier').onclick=()=>$('supplierModal').classList.remove('show');$('saveSupplier').onclick=saveSupplier;$('deleteSupplier').onclick=deleteSupplier;
-  $('supplierSearch').oninput=renderSuppliers;$('categoryFilter').onchange=renderSuppliers;$('sortSupplier').onclick=()=>toggleSort('name');$('sortCategory').onclick=()=>toggleSort('category');
-  $('manageCategories').onclick=$('categoriesBtn').onclick=openCategories;$('closeCategories').onclick=()=>$('categoryModal').classList.remove('show');$('addCategory').onclick=addCategory;$('newCategoryName').addEventListener('keydown',e=>{if(e.key==='Enter')addCategory()});
-  $('supplierModal').onclick=e=>{if(e.target.id==='supplierModal')$('supplierModal').classList.remove('show')};$('categoryModal').onclick=e=>{if(e.target.id==='categoryModal')$('categoryModal').classList.remove('show')};
+  $('goWorkshop').onclick=()=>openWorkshop();$('goSpares').onclick=()=>openSpares();$('workshopSwitch')?.addEventListener('click',showPicker);$('sparesSwitch').onclick=showPicker;$('sparesLogout').onclick=async()=>{await sb.auth.signOut();location.reload()};$('newSupplier').onclick=()=>openSupplier();$('closeSupplier').onclick=$('cancelSupplier').onclick=()=>$('supplierModal').classList.remove('show');$('saveSupplier').onclick=saveSupplier;$('deleteSupplier').onclick=deleteSupplier;$('supplierSearch').oninput=renderSuppliers;$('categoryFilter').onchange=renderSuppliers;$('manageCategories').onclick=$('categoriesBtn').onclick=openCategories;$('closeCategories').onclick=()=>$('categoryModal').classList.remove('show');$('addCategory').onclick=addCategory;$('newCategoryName').addEventListener('keydown',e=>{if(e.key==='Enter')addCategory()});$('supplierModal').onclick=e=>{if(e.target.id==='supplierModal')$('supplierModal').classList.remove('show')};$('categoryModal').onclick=e=>{if(e.target.id==='categoryModal')$('categoryModal').classList.remove('show')};
 }
 function toggleSort(key){if(supplierSort.key===key)supplierSort.dir=supplierSort.dir==='asc'?'desc':'asc';else supplierSort={key,dir:'asc'};renderSuppliers()}
 function sortLabel(id,key,label){const el=$(id);if(!el)return;const arrow=supplierSort.key===key?(supplierSort.dir==='asc'?' ↑':' ↓'):' ↕';el.textContent=label+arrow}
 function showPicker(){$('sparesApp').classList.add('hidden');$('shell')?.classList.add('hidden');$('modulePicker').classList.remove('hidden')}
 function openWorkshop(){$('modulePicker').classList.add('hidden');$('sparesApp').classList.add('hidden');$('shell')?.classList.remove('hidden')}
 async function openSpares(){$('modulePicker').classList.add('hidden');$('shell')?.classList.add('hidden');$('sparesApp').classList.remove('hidden');await loadSparesData()}
-
-async function loadSparesData(){
-  const [{data:c,error:ce},{data:s,error:se}]=await Promise.all([sb.from('supplier_categories').select('*').order('name'),sb.from('suppliers').select('*,supplier_categories(id,name)').order('name')]);
-  if(ce||se){alert('No se pudieron cargar los proveedores. '+(ce?.message||se?.message||''));return}
-  categories=c||[];suppliers=s||[];fillCategorySelects();renderSuppliers();
-}
+async function loadSparesData(){const [{data:c,error:ce},{data:s,error:se}]=await Promise.all([sb.from('supplier_categories').select('*').order('name'),sb.from('suppliers').select('*,supplier_categories(id,name)').order('name')]);if(ce||se){alert('No se pudieron cargar los proveedores. '+(ce?.message||se?.message||''));return}categories=c||[];suppliers=s||[];fillCategorySelects();renderSuppliers()}
 function fillCategorySelects(){const opts=categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');$('categoryFilter').innerHTML='<option value="">Todos los rubros</option>'+opts;$('supplierCategory').innerHTML='<option value="">Sin rubro</option>'+opts;renderCategoryList()}
-function renderSuppliers(){
-  const q=($('supplierSearch')?.value||'').trim().toLowerCase(),cat=$('categoryFilter')?.value||'';
-  const rows=suppliers.filter(s=>{const text=[s.supplier_number,s.name,s.tax_id,s.contact,s.phone,s.whatsapp,s.address,s.bank_name,s.bank_alias,s.bank_cbu_cvu,s.supplier_categories?.name].join(' ').toLowerCase();return(!q||text.includes(q))&&(!cat||String(s.category_id)===cat)});
-  rows.sort((a,b)=>{let av,bv;if(supplierSort.key==='category'){av=(a.supplier_categories?.name||'Sin rubro').toLocaleLowerCase('es');bv=(b.supplier_categories?.name||'Sin rubro').toLocaleLowerCase('es');const byCategory=av.localeCompare(bv,'es',{sensitivity:'base'});if(byCategory!==0)return supplierSort.dir==='asc'?byCategory:-byCategory;return(a.name||'').localeCompare(b.name||'','es',{sensitivity:'base'})}av=(a.name||'').toLocaleLowerCase('es');bv=(b.name||'').toLocaleLowerCase('es');const byName=av.localeCompare(bv,'es',{sensitivity:'base'});return supplierSort.dir==='asc'?byName:-byName});
-  sortLabel('sortSupplier','name','Proveedor');sortLabel('sortCategory','category','Rubro');$('supplierCount').textContent=`${rows.length} proveedor${rows.length===1?'':'es'}${cat?' en este rubro':''}`;
-  $('supplierRows').innerHTML=rows.length?rows.map(s=>`<tr class="spares-row" data-id="${s.id}"><td>${esc(s.supplier_number||'')}</td><td><b>${esc(s.name)}</b>${s.tax_id?`<div class="sub">CUIT/CUIL ${esc(s.tax_id)}</div>`:''}${contactActions(s)}</td><td>${esc(s.contact||'')}</td><td>${rubroBadge(s.supplier_categories?.name,s.category_id)}</td><td>${esc(s.address||'')}</td></tr>`).join(''):`<tr><td colspan="5" class="spares-empty">No hay proveedores para mostrar.</td></tr>`;
-  document.querySelectorAll('.spares-row').forEach(r=>r.onclick=()=>openSupplier(+r.dataset.id));
-}
-function openSupplier(id=null){
-  editingId=id;const s=id?suppliers.find(x=>x.id===id):null;$('supplierModalTitle').textContent=id?'Editar proveedor':'Nuevo proveedor';
-  $('supplierNumber').value=s?.supplier_number||'';$('supplierName').value=s?.name||'';$('supplierTaxId').value=s?.tax_id||'';$('supplierContact').value=s?.contact||'';$('supplierPhone').value=s?.phone||s?.whatsapp||'';$('supplierCategory').value=s?.category_id||'';$('supplierAddress').value=s?.address||'';
-  $('supplierBankName').value=s?.bank_name||'';$('supplierBankHolder').value=s?.bank_holder||'';$('supplierBankCbu').value=s?.bank_cbu_cvu||'';$('supplierBankAlias').value=s?.bank_alias||'';
-  $('deleteSupplier').style.display=id?'':'none';$('supplierModal').classList.add('show');
-}
-async function saveSupplier(){
-  const name=$('supplierName').value.trim();if(!name){alert('Ingresá el nombre del proveedor.');return}
-  const email=$('supplierContact').value.trim();if(email&&!$('supplierContact').checkValidity()){alert('Ingresá un email válido.');return}
-  const phone=$('supplierPhone').value.trim()||null;
-  const row={supplier_number:$('supplierNumber').value.trim()||null,name,tax_id:$('supplierTaxId').value.trim()||null,contact:email||null,phone,whatsapp:phone,category_id:$('supplierCategory').value?Number($('supplierCategory').value):null,address:$('supplierAddress').value.trim()||null,bank_name:$('supplierBankName').value.trim()||null,bank_holder:$('supplierBankHolder').value.trim()||null,bank_cbu_cvu:$('supplierBankCbu').value.trim()||null,bank_alias:$('supplierBankAlias').value.trim()||null,updated_at:new Date().toISOString()};
-  const res=editingId?await sb.from('suppliers').update(row).eq('id',editingId):await sb.from('suppliers').insert(row);if(res.error){alert(res.error.message);return}$('supplierModal').classList.remove('show');await loadSparesData();
-}
+function filteredSuppliers(){const q=($('supplierSearch')?.value||'').trim().toLowerCase(),cat=$('categoryFilter')?.value||'';return suppliers.filter(s=>{const text=[s.name,s.tax_id,s.contact,s.phone,s.whatsapp,s.address,s.bank_name,s.bank_holder,s.bank_alias,s.bank_cbu_cvu,s.supplier_categories?.name].join(' ').toLowerCase();return(!q||text.includes(q))&&(!cat||String(s.category_id)===cat)})}
+function renderSuppliers(){const rows=sortRows(filteredSuppliers());const favorites=rows.filter(s=>s.is_favorite);$('supplierCount').textContent=`${rows.length} proveedor${rows.length===1?'':'es'}${favorites.length?` · ${favorites.length} favorito${favorites.length===1?'':'s'}`:''}`;$('supplierLists').innerHTML=`<section style="margin-bottom:26px"><div style="display:flex;align-items:center;gap:8px;margin:0 0 10px"><span style="font-size:20px;color:#f5b301">★</span><h2 style="margin:0;font-size:18px">Favoritos</h2></div>${tableHtml(favorites,'Todavía no marcaste proveedores como favoritos.')}</section><section><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px"><h2 style="margin:0;font-size:18px">Todos los proveedores</h2></div>${tableHtml(rows,'No hay proveedores para mostrar.',true,'supplierRows')}</section>`;sortLabel('sortSupplier','name','Proveedor');sortLabel('sortCategory','category','Rubro');$('sortSupplier')?.addEventListener('click',()=>toggleSort('name'));$('sortCategory')?.addEventListener('click',()=>toggleSort('category'));document.querySelectorAll('.spares-row').forEach(r=>r.onclick=()=>openSupplier(+r.dataset.id));document.querySelectorAll('[data-favorite-id]').forEach(b=>b.onclick=async e=>{e.stopPropagation();await toggleFavorite(+b.dataset.favoriteId)})}
+async function toggleFavorite(id){const s=suppliers.find(x=>x.id===id);if(!s)return;const next=!s.is_favorite;const{error}=await sb.from('suppliers').update({is_favorite:next,updated_at:new Date().toISOString()}).eq('id',id);if(error){alert(error.message);return}s.is_favorite=next;renderSuppliers()}
+function openSupplier(id=null){editingId=id;const s=id?suppliers.find(x=>x.id===id):null;$('supplierModalTitle').textContent=id?'Editar proveedor':'Nuevo proveedor';$('supplierName').value=s?.name||'';$('supplierTaxId').value=s?.tax_id||'';$('supplierContact').value=s?.contact||'';$('supplierPhone').value=s?.phone||s?.whatsapp||'';$('supplierCategory').value=s?.category_id||'';$('supplierAddress').value=s?.address||'';$('supplierBankName').value=s?.bank_name||'';$('supplierBankHolder').value=s?.bank_holder||'';$('supplierBankCbu').value=s?.bank_cbu_cvu||'';$('supplierBankAlias').value=s?.bank_alias||'';$('deleteSupplier').style.display=id?'':'none';$('supplierModal').classList.add('show')}
+async function saveSupplier(){const name=$('supplierName').value.trim();if(!name){alert('Ingresá el nombre del proveedor.');return}const email=$('supplierContact').value.trim();if(email&&!$('supplierContact').checkValidity()){alert('Ingresá un email válido.');return}const phone=$('supplierPhone').value.trim()||null;const row={name,tax_id:$('supplierTaxId').value.trim()||null,contact:email||null,phone,whatsapp:phone,category_id:$('supplierCategory').value?Number($('supplierCategory').value):null,address:$('supplierAddress').value.trim()||null,bank_name:$('supplierBankName').value.trim()||null,bank_holder:$('supplierBankHolder').value.trim()||null,bank_cbu_cvu:$('supplierBankCbu').value.trim()||null,bank_alias:$('supplierBankAlias').value.trim()||null,updated_at:new Date().toISOString()};const res=editingId?await sb.from('suppliers').update(row).eq('id',editingId):await sb.from('suppliers').insert(row);if(res.error){alert(res.error.message);return}$('supplierModal').classList.remove('show');await loadSparesData()}
 async function deleteSupplier(){if(!editingId||!confirm('¿Eliminar este proveedor?'))return;const{error}=await sb.from('suppliers').delete().eq('id',editingId);if(error){alert(error.message);return}$('supplierModal').classList.remove('show');await loadSparesData()}
 function openCategories(){renderCategoryList();$('categoryModal').classList.add('show')}
 function renderCategoryList(){$('categoryList').innerHTML=categories.length?categories.map(c=>{const color=categoryColor(c.name||c.id);return`<div class="category-item"><span style="display:flex;align-items:center;gap:9px"><span style="width:12px;height:12px;border-radius:50%;background:${color};display:inline-block"></span><b>${esc(c.name)}</b></span><button class="mini remove-category" data-id="${c.id}">Eliminar</button></div>`}).join(''):'<div class="spares-empty">Todavía no hay rubros creados.</div>';document.querySelectorAll('.remove-category').forEach(b=>b.onclick=()=>removeCategory(+b.dataset.id))}
 async function addCategory(){const name=$('newCategoryName').value.trim();if(!name)return;const{error}=await sb.from('supplier_categories').insert({name});if(error){alert(error.code==='23505'?'Ese rubro ya existe.':error.message);return}$('newCategoryName').value='';await loadSparesData();renderCategoryList()}
 async function removeCategory(id){const c=categories.find(x=>x.id===id);if(!c||!confirm(`¿Eliminar el rubro "${c.name}"? Los proveedores quedarán sin rubro.`))return;const{error}=await sb.from('supplier_categories').delete().eq('id',id);if(error){alert(error.message);return}await loadSparesData();renderCategoryList()}
-
 function watchLogin(){const shell=$('shell');if(!shell)return;const check=()=>{const loggedIn=!shell.classList.contains('hidden')&&$('login')?.classList.contains('hidden');if(loggedIn&&!pickerShownForSession){pickerShownForSession=true;showPicker()}if(!$('login')?.classList.contains('hidden'))pickerShownForSession=false};new MutationObserver(check).observe(shell,{attributes:true,attributeFilter:['class']});if($('login'))new MutationObserver(check).observe($('login'),{attributes:true,attributeFilter:['class']});setTimeout(check,200)}
-
 buildUI();watchLogin();
