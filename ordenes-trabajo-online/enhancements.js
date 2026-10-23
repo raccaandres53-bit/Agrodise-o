@@ -37,7 +37,7 @@ function showToast(msg){
 }
 
 function currentOrderId(){
-  const m=($('code')?.textContent||'').match(/OT-(\d+)/);
+  const m=($('code')?.textContent||'').match(/OT-(\\d+)/);
   return m?Number(m[1]):null;
 }
 
@@ -97,3 +97,47 @@ const ordersObserver=new MutationObserver(()=>refreshActiveOrders());
 if($('olist')) ordersObserver.observe($('olist'),{childList:true});
 setInterval(syncDeliveryButton,500);
 setTimeout(refreshActiveOrders,900);
+
+// === Revert delivered orders (return to ready state) ===
+const revertBtn=document.createElement('button');
+revertBtn.id='revertBtn';
+revertBtn.className='btn';
+revertBtn.textContent='↩ No se entregó';
+revertBtn.style.background='#e67e22';
+revertBtn.style.color='#fff';
+revertBtn.style.display='none';
+if(actions) actions.appendChild(revertBtn);
+
+function syncRevertButton(){
+  if(!status||!revertBtn)return;
+  revertBtn.style.display=status.value==='Entregada'&&!!currentOrderId()?'':'none';
+}
+
+async function revertDeliveredOrder(){
+  const id=currentOrderId();
+  if(!id)return;
+  if(!confirm('¿Confirmar que esta orden NO fue entregada y debe volver al estado listo para entregar?'))return;
+  revertBtn.disabled=true;
+  revertBtn.textContent='Guardando...';
+  const {error}=await supabase.from('orders').update({status:'Lista para entregar',delivered_at:null,updated_at:new Date().toISOString()}).eq('id',id);
+  if(error){
+    revertBtn.disabled=false;
+    revertBtn.textContent='↩ No se entregó';
+    showToast('No se pudo revertir el estado: '+error.message);
+    return;
+  }
+  status.value='Lista para entregar';
+  syncDeliveryButton();
+  syncRevertButton();
+  showToast('Orden devuelta a estado "Lista para entregar"');
+  setTimeout(()=>location.reload(),650);
+}
+
+revertBtn.onclick=revertDeliveredOrder;
+
+$('historyBox')?.addEventListener('click',()=>setTimeout(()=>{
+  syncDeliveryButton();
+  syncRevertButton();
+},500));
+
+setInterval(syncRevertButton,500);
