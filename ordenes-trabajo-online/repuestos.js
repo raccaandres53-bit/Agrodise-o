@@ -27,7 +27,8 @@ function digitsOnly(v){return String(v||'').replace(/\D/g,'')}
 function whatsappHref(v){const d=digitsOnly(v);return d?`https://wa.me/${d}`:''}
 function phoneHref(v){const p=String(v||'').trim();return p?`tel:${p.replace(/\s/g,'')}`:''}
 function contactActions(s){
-  const wa=whatsappHref(s.whatsapp),tel=phoneHref(s.phone);
+  const number=s.phone||s.whatsapp||'';
+  const wa=whatsappHref(number),tel=phoneHref(number);
   const links=[];
   if(wa)links.push(`<a href="${wa}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:7px;background:#1f8f4e;color:#fff;text-decoration:none;font-size:11px;font-weight:700">WhatsApp</a>`);
   if(tel)links.push(`<a href="${esc(tel)}" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:7px;background:#2c2c31;color:#fff;text-decoration:none;font-size:11px;font-weight:700;border:1px solid #444">Llamar</a>`);
@@ -66,8 +67,7 @@ function buildUI(){
 
     <div class="sec"><div class="sectop"><b>Contacto</b></div><div class="spares-grid">
       <div class="spares-field"><label>Email</label><input id="supplierContact" type="email" placeholder="proveedor@empresa.com"></div>
-      <div class="spares-field"><label>Teléfono</label><input id="supplierPhone" type="tel" placeholder="Ej. 03562 123456"></div>
-      <div class="spares-field"><label>WhatsApp</label><input id="supplierWhatsapp" type="tel" placeholder="Ej. 5493562123456"></div>
+      <div class="spares-field"><label>Teléfono / WhatsApp</label><input id="supplierPhone" type="tel" placeholder="Ej. 5493562123456"></div>
     </div></div>
 
     <div class="sec"><div class="sectop"><b>Datos bancarios</b></div><div class="spares-grid">
@@ -116,14 +116,15 @@ function renderSuppliers(){
 }
 function openSupplier(id=null){
   editingId=id;const s=id?suppliers.find(x=>x.id===id):null;$('supplierModalTitle').textContent=id?'Editar proveedor':'Nuevo proveedor';
-  $('supplierNumber').value=s?.supplier_number||'';$('supplierName').value=s?.name||'';$('supplierTaxId').value=s?.tax_id||'';$('supplierContact').value=s?.contact||'';$('supplierPhone').value=s?.phone||'';$('supplierWhatsapp').value=s?.whatsapp||'';$('supplierCategory').value=s?.category_id||'';$('supplierAddress').value=s?.address||'';
+  $('supplierNumber').value=s?.supplier_number||'';$('supplierName').value=s?.name||'';$('supplierTaxId').value=s?.tax_id||'';$('supplierContact').value=s?.contact||'';$('supplierPhone').value=s?.phone||s?.whatsapp||'';$('supplierCategory').value=s?.category_id||'';$('supplierAddress').value=s?.address||'';
   $('supplierBankName').value=s?.bank_name||'';$('supplierBankHolder').value=s?.bank_holder||'';$('supplierBankCbu').value=s?.bank_cbu_cvu||'';$('supplierBankAlias').value=s?.bank_alias||'';
   $('deleteSupplier').style.display=id?'':'none';$('supplierModal').classList.add('show');
 }
 async function saveSupplier(){
   const name=$('supplierName').value.trim();if(!name){alert('Ingresá el nombre del proveedor.');return}
   const email=$('supplierContact').value.trim();if(email&&!$('supplierContact').checkValidity()){alert('Ingresá un email válido.');return}
-  const row={supplier_number:$('supplierNumber').value.trim()||null,name,tax_id:$('supplierTaxId').value.trim()||null,contact:email||null,phone:$('supplierPhone').value.trim()||null,whatsapp:$('supplierWhatsapp').value.trim()||null,category_id:$('supplierCategory').value?Number($('supplierCategory').value):null,address:$('supplierAddress').value.trim()||null,bank_name:$('supplierBankName').value.trim()||null,bank_holder:$('supplierBankHolder').value.trim()||null,bank_cbu_cvu:$('supplierBankCbu').value.trim()||null,bank_alias:$('supplierBankAlias').value.trim()||null,updated_at:new Date().toISOString()};
+  const phone=$('supplierPhone').value.trim()||null;
+  const row={supplier_number:$('supplierNumber').value.trim()||null,name,tax_id:$('supplierTaxId').value.trim()||null,contact:email||null,phone,whatsapp:phone,category_id:$('supplierCategory').value?Number($('supplierCategory').value):null,address:$('supplierAddress').value.trim()||null,bank_name:$('supplierBankName').value.trim()||null,bank_holder:$('supplierBankHolder').value.trim()||null,bank_cbu_cvu:$('supplierBankCbu').value.trim()||null,bank_alias:$('supplierBankAlias').value.trim()||null,updated_at:new Date().toISOString()};
   const res=editingId?await sb.from('suppliers').update(row).eq('id',editingId):await sb.from('suppliers').insert(row);if(res.error){alert(res.error.message);return}$('supplierModal').classList.remove('show');await loadSparesData();
 }
 async function deleteSupplier(){if(!editingId||!confirm('¿Eliminar este proveedor?'))return;const{error}=await sb.from('suppliers').delete().eq('id',editingId);if(error){alert(error.message);return}$('supplierModal').classList.remove('show');await loadSparesData()}
