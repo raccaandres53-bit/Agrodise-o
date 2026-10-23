@@ -30,7 +30,7 @@ function phoneActions(c){
 function init(){
   if(!$('modulePicker')||$('goCarriers'))return false;
   const cards=document.querySelector('#modulePicker .module-cards');if(!cards)return false;
-  cards.insertAdjacentHTML('beforeend',`<button class="module-card" id="goCarriers"><div class="module-icon">🚚</div><div class="module-name">Transportistas</div><div class="module-desc">Transportistas, recorridos, contactos, favoritos y datos de pago.</div></button>`);
+  cards.insertAdjacentHTML('beforeend',`<button class="module-card" id="goCarriers"><div class="module-icon">🚚</div><div class="module-name">Transportistas</div><div class="module-desc">Transportistas, recorridos y contactos.</div></button>`);
   document.body.insertAdjacentHTML('beforeend',`
   <div id="carriersApp" class="spares-app hidden"><div class="spares-shell">
     <aside class="spares-side"><div class="brand">AGRO<b>DISEÑO</b></div><div class="sub">Módulo de transportistas</div>
