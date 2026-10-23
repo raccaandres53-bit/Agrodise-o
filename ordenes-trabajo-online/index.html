@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AgroDiseño · Gestión de Taller</title>
+<meta name="theme-color" content="#0b0b0d">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div id="login" class="login-wrap">
+  <div class="login-card">
+    <div class="login-title">AGRO<b>DISEÑO</b></div>
+    <div class="sub">Gestión interna de taller · Online</div>
+    <div class="field"><label>Email</label><input id="loginEmail" type="email" autocomplete="username" placeholder="tu@email.com"></div>
+    <div class="field"><label>Contraseña</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Mínimo 6 caracteres"></div>
+    <div class="login-actions"><button class="btn red" id="loginBtn">Ingresar</button><button class="btn dark" id="signupBtn">Crear acceso</button></div>
+    <div id="loginMsg" class="login-msg"></div>
+    <div class="note">El acceso a los datos está limitado a correos autorizados por AgroDiseño. Crear una cuenta no da acceso automáticamente.</div>
+  </div>
+</div>
+
+<div id="shell" class="app hidden">
+<aside>
+  <div class="brand">AGRO<b>DISEÑO</b></div><div class="sub">Gestión interna de taller · Online</div>
+  <nav>
+    <button class="active" data-v="orders">▣ Órdenes de trabajo</button>
+    <button data-v="clients">👤 Clientes</button>
+    <button data-v="machines">⚙ Máquinas</button>
+    <button data-v="history">▤ Historial</button>
+  </nav>
+  <div class="userbox"><div class="sub">Sesión</div><div class="useremail" id="userEmail"></div><button class="logout" id="logoutBtn">Cerrar sesión</button></div>
+</aside>
+<main>
+<section id="orders" class="view active">
+  <div class="top"><div><h1>Órdenes de trabajo</h1><div class="sub">Ingreso, reparación, repuestos, fotos e impresión</div></div>
+  <div style="display:flex;gap:9px;width:min(100%,520px)"><input class="search" id="q" placeholder="Buscar cliente o máquina..."><button class="btn red" id="newBtn">+ Nueva reparación</button></div></div>
+  <div class="stats"><div class="card"><div class="sub">Pendientes</div><div class="num" id="sp">0</div></div><div class="card"><div class="sub">En proceso</div><div class="num" id="si">0</div></div><div class="card"><div class="sub">Listas</div><div class="num" id="sd">0</div></div><div class="card"><div class="sub">Total</div><div class="num" id="st">0</div></div></div>
+  <div class="orders" id="olist"></div>
+</section>
+<section id="clients" class="view"><div class="top"><div><h1>Clientes</h1><div class="sub">Resumen automático según las órdenes cargadas</div></div></div><div id="clientsBox"></div></section>
+<section id="machines" class="view"><div class="top"><div><h1>Máquinas</h1><div class="sub">Historial por equipo, modelo y cliente</div></div></div><div id="machinesBox"></div></section>
+<section id="history" class="view"><div class="top"><div><h1>Historial</h1><div class="sub">Todas las reparaciones registradas</div></div><button class="btn dark" id="backupBtn">Descargar respaldo JSON</button></div><div id="historyBox"></div></section>
+</main></div>
+
+<div class="modal" id="modal"><div class="dialog">
+  <div class="head"><div><h2 id="mt" style="margin:0">Orden</h2><div class="sub" id="code"></div></div><button class="close" id="closeBtn">×</button></div>
+  <div class="fg" style="margin-top:16px">
+    <div class="field"><label>Cliente</label><input id="client"></div><div class="field"><label>Máquina</label><input id="machine"></div>
+    <div class="field"><label>Marca / Modelo</label><input id="model"></div><div class="field"><label>Nº serie / identificación</label><input id="serial"></div>
+    <div class="field"><label>Operario</label><input id="operator"></div><div class="field"><label>Fecha ingreso</label><input type="date" id="date_in"></div>
+    <div class="field"><label>Estado</label><select id="status"><option>Pendiente</option><option>En proceso</option><option>Lista para entregar</option></select></div>
+  </div>
+  <div class="sec"><div class="sectop"><b>Trabajos a realizar</b><button class="mini" id="addTaskBtn">+ Agregar</button></div><table class="table"><thead><tr><th>Trabajo</th><th style="width:135px">Estado</th><th style="width:45px"></th></tr></thead><tbody id="tasks"></tbody></table></div>
+  <div class="sec"><div class="sectop"><b>Checklist / elementos con los que llegó</b><button class="mini" id="addCheckBtn">+ Agregar</button></div><table class="table"><thead><tr><th>Elemento</th><th style="width:120px">Condición</th><th>Comentario</th><th style="width:45px"></th></tr></thead><tbody id="checks"></tbody></table></div>
+  <div class="sec"><div class="sectop"><b>Piezas y repuestos</b><button class="mini" id="addPartBtn">+ Agregar</button></div><table class="table"><thead><tr><th style="width:75px">Cant.</th><th>Descripción</th><th style="width:135px">Sector</th><th style="width:120px">Estado</th><th style="width:45px"></th></tr></thead><tbody id="parts"></tbody></table></div>
+  <div class="sec field"><label>Observaciones internas</label><textarea id="observations" placeholder="Notas de oficina, medidas, detalles especiales..."></textarea></div>
+  <div class="sec"><div class="sectop"><b>Fotos de ingreso / reparación</b><div><input type="file" id="photoFile" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none"><button class="mini" id="photoBtn">+ Subir foto</button></div></div><div class="photos" id="photos"></div><div class="sub" id="photoHint">Guardá primero la orden para poder adjuntar fotos.</div></div>
+  <div class="acts"><button class="btn danger" id="del">Eliminar</button><button class="btn dark" id="printBtn">Imprimir planilla</button><button class="btn red" id="saveBtn">Guardar orden</button></div>
+</div></div>
+<div class="print" id="print"></div><div id="toast" class="toast hidden"></div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
