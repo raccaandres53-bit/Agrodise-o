@@ -6,26 +6,36 @@ const sb=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoR
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
 const norm=v=>String(v||'').trim().toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-let routes=[],localities=[],carrierRoutes=new Map();
+let routes=[],localities=[],carrierRoutes=new Map(),carrierSearchText=new Map();
 
 function routeLabel(r){return `${r.origin} → ${r.destination}`}
+function routeVariantLabel(r){
+  if(!r)return 'Sin recorrido';
+  const stops=Array.isArray(r.intermediate_stops)?r.intermediate_stops:[];
+  if(!stops.length)return routeLabel(r);
+  const shown=stops.slice(0,2).join(', '),extra=stops.length>2?` +${stops.length-2}`:'';
+  return `${routeLabel(r)} · vía ${shown}${extra}`;
+}
 function selectedStops(){return [...document.querySelectorAll('.route-locality-check:checked')].map(x=>x.value)}
 function localityCheckbox(name){return `<label class="route-locality-option" data-search="${esc(norm(name))}" style="display:flex;align-items:center;gap:9px;border:1px solid #35353b;background:#1a1a1e;border-radius:10px;padding:10px 12px;cursor:pointer"><input type="checkbox" class="route-locality-check" value="${esc(name)}"><span>${esc(name)}</span></label>`}
+function sameStops(a,b){const aa=(a||[]).map(norm).filter(Boolean).sort(),bb=(b||[]).map(norm).filter(Boolean).sort();return aa.length===bb.length&&aa.every((x,i)=>x===bb[i])}
 
 async function refreshData(){
   const [{data:r,error:re},{data:l,error:le},{data:c}]=await Promise.all([
     sb.from('carrier_routes').select('id,origin,destination,intermediate_stops,created_at').order('origin').order('destination'),
     sb.from('carrier_localities').select('id,name,created_at').order('name'),
-    sb.from('carriers').select('id,route_id')
+    sb.from('carriers').select('id,route_id,name,tax_id,email,phone,whatsapp,address,bank_name,bank_alias,bank_cbu_cvu')
   ]);
   if(re||le){console.error(re||le);return}
-  routes=r||[];localities=l||[];carrierRoutes=new Map((c||[]).map(x=>[Number(x.id),Number(x.route_id)||null]));
-  renderLocalities();renderRouteChoices();renderRoutes();syncRouteSelects();applyLocalityFilter();
+  routes=r||[];localities=l||[];
+  carrierRoutes=new Map((c||[]).map(x=>[Number(x.id),Number(x.route_id)||null]));
+  carrierSearchText=new Map((c||[]).map(x=>[Number(x.id),norm([x.name,x.tax_id,x.email,x.phone,x.whatsapp,x.address,x.bank_name,x.bank_alias,x.bank_cbu_cvu].join(' '))]));
+  renderLocalities();renderRouteChoices();renderRoutes();syncRouteSelects();patchRouteBadges();applyUnifiedCarrierFilter();
 }
 
 function ensureUI(){
   if(!$('routeModal')||$('localitiesBtn'))return false;
-  $('routeSuggestBox')?.remove();$('simpleRouteBox')?.remove();
+  $('routeSuggestBox')?.remove();$('simpleRouteBox')?.remove();$('routeLocalitySearch')?.remove();
 
   const routesBtn=$('routesBtn');
   routesBtn?.insertAdjacentHTML('afterend','<button id="localitiesBtn">⌖ Localidades</button>');
@@ -46,7 +56,7 @@ function ensureUI(){
   grid.insertAdjacentHTML('afterend',`
     <datalist id="carrierLocalitiesDatalist"></datalist>
     <div id="routeLocalitiesBox" style="margin-top:14px;padding:14px;border:1px solid #303036;border-radius:12px;background:#151518">
-      <div><b>¿Por qué localidades pasa?</b><div class="sub">Tocá las localidades que correspondan a este recorrido.</div></div>
+      <div><b>¿Por qué localidades pasa?</b><div class="sub">Podés crear varios recorridos con el mismo origen y destino. Marcá pueblos distintos para diferenciar cada variante.</div></div>
       <input id="routeLocalityPickerSearch" class="spares-input" style="margin-top:12px;width:100%" placeholder="Buscar dentro de mis localidades...">
       <div id="routeLocalityChoices" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-top:12px"></div>
       <div id="noRouteLocalities" class="sub" style="margin-top:10px;display:none">Todavía no cargaste localidades. Entrá en <b>Localidades</b> para agregarlas.</div>
@@ -58,9 +68,9 @@ function ensureUI(){
   $('localitiesModal').onclick=e=>{if(e.target.id==='localitiesModal')closeLocalities()};
   $('routeLocalityPickerSearch').oninput=filterRouteChoices;
 
-  const filters=$('carrierSearch')?.parentElement;if(filters&&!$('routeLocalitySearch')){const i=document.createElement('input');i.id='routeLocalitySearch';i.className='spares-input';i.placeholder='Buscar localidad del recorrido...';i.oninput=applyLocalityFilter;filters.appendChild(i)}
-  if($('carrierRows'))new MutationObserver(()=>applyLocalityFilter()).observe($('carrierRows'),{childList:true,subtree:true});
-  if($('favoriteCarrierRows'))new MutationObserver(()=>applyLocalityFilter()).observe($('favoriteCarrierRows'),{childList:true,subtree:true});
+  installUnifiedMainSearch();
+  if($('carrierRows'))new MutationObserver(()=>{patchRouteBadges();applyUnifiedCarrierFilter()}).observe($('carrierRows'),{childList:true,subtree:true});
+  if($('favoriteCarrierRows'))new MutationObserver(()=>{patchRouteBadges();applyUnifiedCarrierFilter()}).observe($('favoriteCarrierRows'),{childList:true,subtree:true});
   refreshData();return true;
 }
 
@@ -94,12 +104,15 @@ function filterRouteChoices(){const q=norm($('routeLocalityPickerSearch')?.value
 
 async function saveRoute(){
   const origin=$('routeOrigin').value.trim(),destination=$('routeDestination').value.trim();if(!origin||!destination){alert('Ingresá origen y destino.');return}
-  const stops=selectedStops();const {error}=await sb.from('carrier_routes').insert({origin,destination,intermediate_stops:stops});
-  if(error){alert(error.code==='23505'?'Ese recorrido ya existe.':error.message);return}
+  const stops=selectedStops();
+  const duplicate=routes.some(r=>norm(r.origin)===norm(origin)&&norm(r.destination)===norm(destination)&&sameStops(r.intermediate_stops,stops));
+  if(duplicate){alert('Ese recorrido, con esas mismas localidades intermedias, ya está cargado.');return}
+  const {error}=await sb.from('carrier_routes').insert({origin,destination,intermediate_stops:stops});
+  if(error){alert(error.message);return}
   $('routeOrigin').value='';$('routeDestination').value='';$('routeLocalityPickerSearch').value='';document.querySelectorAll('.route-locality-check').forEach(x=>x.checked=false);await refreshData();
 }
 async function removeRoute(id){
-  const r=routes.find(x=>Number(x.id)===Number(id));if(!r||!confirm(`¿Eliminar el recorrido ${routeLabel(r)}?`))return;
+  const r=routes.find(x=>Number(x.id)===Number(id));if(!r||!confirm(`¿Eliminar el recorrido ${routeVariantLabel(r)}?`))return;
   const {error}=await sb.from('carrier_routes').delete().eq('id',id);if(error){alert(error.message);return}await refreshData();
 }
 function renderRoutes(){
@@ -108,12 +121,41 @@ function renderRoutes(){
   box.querySelectorAll('.route-remove-custom').forEach(b=>b.onclick=()=>removeRoute(+b.dataset.id));
 }
 function syncRouteSelects(){
-  const options=routes.map(r=>`<option value="${r.id}">${esc(routeLabel(r))}</option>`).join('');
+  const options=routes.map(r=>`<option value="${r.id}">${esc(routeVariantLabel(r))}</option>`).join('');
   const rf=$('routeFilter');if(rf){const old=rf.value;rf.innerHTML='<option value="">Todos los recorridos</option>'+options;rf.value=old}
   const cr=$('carrierRoute');if(cr){const old=cr.value;cr.innerHTML='<option value="">Sin recorrido</option>'+options;cr.value=old}
 }
-function applyLocalityFilter(){
-  const q=norm($('routeLocalitySearch')?.value||'');document.querySelectorAll('.carrier-row').forEach(row=>{if(!q){row.style.display='';return}const rid=carrierRoutes.get(Number(row.dataset.id)),r=routes.find(x=>Number(x.id)===rid);const text=norm([r?.origin,r?.destination,...(Array.isArray(r?.intermediate_stops)?r.intermediate_stops:[])].join(' '));row.style.display=text.includes(q)?'':'none'})
+function patchRouteBadges(){
+  document.querySelectorAll('.carrier-row').forEach(row=>{
+    const rid=carrierRoutes.get(Number(row.dataset.id)),r=routes.find(x=>Number(x.id)===Number(rid));if(!r)return;
+    const badge=row.querySelector('td:nth-child(4) span');if(badge)badge.textContent=routeVariantLabel(r);
+  });
+}
+
+function installUnifiedMainSearch(){
+  const input=$('carrierSearch'),routeFilter=$('routeFilter');if(!input||input.dataset.localityUnified==='1')return;
+  input.dataset.localityUnified='1';input.placeholder='Buscar transportista, datos o localidad del recorrido...';
+  let held='';
+  input.addEventListener('input',()=>{held=input.value;input.value=''},true);
+  input.addEventListener('input',()=>{input.value=held;applyUnifiedCarrierFilter()});
+  if(routeFilter){
+    routeFilter.addEventListener('change',()=>{held=input.value;input.value=''},true);
+    routeFilter.addEventListener('change',()=>{input.value=held;setTimeout(()=>{patchRouteBadges();applyUnifiedCarrierFilter()},0)});
+  }
+}
+function applyUnifiedCarrierFilter(){
+  const input=$('carrierSearch');if(!input)return;const q=norm(input.value||'');
+  const matches=id=>{
+    if(!q)return true;
+    const rid=carrierRoutes.get(Number(id)),r=routes.find(x=>Number(x.id)===Number(rid));
+    const routeText=norm([r?.origin,r?.destination,...(Array.isArray(r?.intermediate_stops)?r.intermediate_stops:[])].join(' '));
+    return (carrierSearchText.get(Number(id))||'').includes(q)||routeText.includes(q);
+  };
+  document.querySelectorAll('.carrier-row').forEach(row=>row.style.display=matches(row.dataset.id)?'':'none');
+  const visible=[...document.querySelectorAll('#carrierRows .carrier-row')].filter(r=>r.style.display!=='none').length;
+  if($('carrierCount'))$('carrierCount').textContent=`${visible} transportista${visible===1?'':'s'}`;
+  const favVisible=[...document.querySelectorAll('#favoriteCarrierRows .carrier-row')].some(r=>r.style.display!=='none');
+  if($('favoriteCarriersSection'))$('favoriteCarriersSection').style.display=favVisible?'':'none';
 }
 
 const boot=()=>{if(ensureUI())return;const obs=new MutationObserver(()=>{if(ensureUI())obs.disconnect()});obs.observe(document.body,{childList:true,subtree:true});setTimeout(()=>ensureUI(),700)};boot();
