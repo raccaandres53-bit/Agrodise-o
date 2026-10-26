@@ -20,15 +20,16 @@ function injectStyles(){
 }
 
 async function loadOwnAccess(){
-  const {data:{session}}=await sb.auth.getSession();if(!session?.user?.email)return null;
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session?.user?.email){ownAccess=null;return null}
   const {data,error}=await sb.from('allowed_users').select('email,role,can_taller,can_repuestos,can_transportistas,can_manage_users').eq('email',session.user.email.toLowerCase()).maybeSingle();
-  if(error)return null;ownAccess=data;return data;
+  if(error){ownAccess=null;return null}
+  ownAccess=data;return data;
 }
 function applyModulePermissions(){
-  if(!ownAccess)return;
   const map=[['goWorkshop','can_taller'],['goSpares','can_repuestos'],['goCarriers','can_transportistas']];
-  map.forEach(([id,key])=>{const el=$(id);if(el)el.style.display=ownAccess[key]?'':'none'});
-  const btn=$('usersAdminBtn');if(btn)btn.style.display=ownAccess.can_manage_users?'':'none';
+  map.forEach(([id,key])=>{const el=$(id);if(el)el.style.display=ownAccess?.[key]?'':'none'});
+  const btn=$('usersAdminBtn');if(btn)btn.style.display=ownAccess?.can_manage_users?'':'none';
 }
 function buildUI(){
   if(!$('modulePicker')||$('usersAdminBtn'))return false;
@@ -79,3 +80,4 @@ async function deleteUser(email){if(!confirm(`¿Quitar el acceso de ${email}?`))
 
 async function boot(){await loadOwnAccess();if(!buildUI()){const obs=new MutationObserver(()=>{if(buildUI()){applyModulePermissions();obs.disconnect()}});obs.observe(document.body,{childList:true,subtree:true})}applyModulePermissions()}
 boot();
+sb.auth.onAuthStateChange(async(event,session)=>{if(session){await loadOwnAccess()}else ownAccess=null;applyModulePermissions()});
