@@ -6,67 +6,114 @@ const sb=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoR
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
 const norm=v=>String(v||'').trim().toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-let routes=[],carrierRoutes=new Map(),recentLocalities=[],searchTimer=null;
+let routes=[],localities=[],carrierRoutes=new Map();
 
-function uniq(arr){const seen=new Set();return arr.map(x=>String(x||'').trim()).filter(x=>{const k=norm(x);if(!k||seen.has(k))return false;seen.add(k);return true})}
-function selectedStops(){return [...document.querySelectorAll('#simpleStops .simple-stop')].map(x=>x.dataset.name)}
-function renderStops(names){const box=$('simpleStops');if(!box)return;box.innerHTML=uniq(names).map(n=>`<span class="simple-stop" data-name="${esc(n)}" style="display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #3a3a40;border-radius:999px;background:#1b1b1f"><span>${esc(n)}</span><button type="button" class="remove-simple-stop" style="border:0;background:none;color:#aaa;font-size:16px;line-height:1;cursor:pointer">×</button></span>`).join('');box.querySelectorAll('.remove-simple-stop').forEach(b=>b.onclick=()=>b.closest('.simple-stop').remove())}
-function addStop(name){if(!name)return;renderStops([...selectedStops(),name]);const inp=$('localitySearch');if(inp){inp.value='';inp.focus()}renderSearchResults([])}
-function renderRecent(){const box=$('recentLocalities');if(!box)return;box.innerHTML=recentLocalities.length?recentLocalities.map(n=>`<button type="button" class="mini recent-locality" data-name="${esc(n)}" style="border-radius:999px">${esc(n)}</button>`).join(''):'<span class="sub">Todavía no hay localidades recientes.</span>';box.querySelectorAll('.recent-locality').forEach(b=>b.onclick=()=>addStop(b.dataset.name))}
-function renderSearchResults(items){const box=$('localityResults');if(!box)return;if(!items.length){box.innerHTML='';box.style.display='none';return}box.style.display='grid';box.innerHTML=items.map(x=>`<button type="button" class="locality-result" data-name="${esc(x.name)}" style="text-align:left;border:1px solid #34343a;background:#1a1a1e;color:#fff;border-radius:10px;padding:10px 12px;cursor:pointer"><b>${esc(x.name)}</b>${x.state?`<div class="sub">${esc(x.state)}</div>`:''}</button>`).join('');box.querySelectorAll('.locality-result').forEach(b=>b.onclick=()=>addStop(b.dataset.name))}
-async function searchLocalities(){const q=$('localitySearch')?.value.trim()||'';if(q.length<2){renderSearchResults([]);return}const status=$('localitySearchStatus');status.textContent='Buscando…';try{const {data,error}=await sb.functions.invoke('carrier-locality-search',{body:{query:q}});if(error)throw new Error(error.message||'No se pudo buscar');if(data?.error)throw new Error(data.error);renderSearchResults(data?.results||[]);status.textContent=(data?.results||[]).length?'Tocá una localidad para agregarla.':'No encontré coincidencias.'}catch(e){renderSearchResults([]);status.textContent='No pude buscar localidades. Podés escribirla y agregarla manualmente.'}}
-function onSearchInput(){clearTimeout(searchTimer);searchTimer=setTimeout(searchLocalities,300)}
-function addTypedLocality(){const v=$('localitySearch')?.value.trim();if(v)addStop(v)}
+function routeLabel(r){return `${r.origin} → ${r.destination}`}
+function selectedStops(){return [...document.querySelectorAll('.route-locality-check:checked')].map(x=>x.value)}
+function localityCheckbox(name){return `<label class="route-locality-option" data-search="${esc(norm(name))}" style="display:flex;align-items:center;gap:9px;border:1px solid #35353b;background:#1a1a1e;border-radius:10px;padding:10px 12px;cursor:pointer"><input type="checkbox" class="route-locality-check" value="${esc(name)}"><span>${esc(name)}</span></label>`}
 
 async function refreshData(){
-  const [{data:r},{data:c}]=await Promise.all([
-    sb.from('carrier_routes').select('id,origin,destination,intermediate_stops,created_at').order('created_at',{ascending:false}),
+  const [{data:r,error:re},{data:l,error:le},{data:c}]=await Promise.all([
+    sb.from('carrier_routes').select('id,origin,destination,intermediate_stops,created_at').order('origin').order('destination'),
+    sb.from('carrier_localities').select('id,name,created_at').order('name'),
     sb.from('carriers').select('id,route_id')
   ]);
-  routes=r||[];carrierRoutes=new Map((c||[]).map(x=>[Number(x.id),Number(x.route_id)||null]));
-  recentLocalities=uniq(routes.flatMap(r=>Array.isArray(r.intermediate_stops)?r.intermediate_stops:[])).slice(0,5);
-  renderRecent();enhanceRouteList();applyLocalityFilter();
+  if(re||le){console.error(re||le);return}
+  routes=r||[];localities=l||[];carrierRoutes=new Map((c||[]).map(x=>[Number(x.id),Number(x.route_id)||null]));
+  renderLocalities();renderRouteChoices();renderRoutes();syncRouteSelects();applyLocalityFilter();
 }
+
 function ensureUI(){
-  if(!$('routeModal')||$('simpleRouteBox'))return false;
-  $('routeSuggestBox')?.remove();
-  const grid=$('routeOrigin')?.closest('.spares-grid');if(!grid)return false;
-  grid.insertAdjacentHTML('afterend',`
-    <div id="simpleRouteBox" style="margin-top:14px;padding:14px;border:1px solid #303036;border-radius:12px;background:#151518">
-      <div><b>Localidades intermedias</b><div class="sub">Escribí el nombre y elegí una sugerencia para agregarla al recorrido.</div></div>
-      <div style="margin-top:12px"><div class="sub" style="margin-bottom:7px"><b>Recientes</b> · últimas 5 agregadas</div><div id="recentLocalities" style="display:flex;flex-wrap:wrap;gap:7px"></div></div>
-      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;position:relative">
-        <input id="localitySearch" class="spares-input" autocomplete="off" style="flex:1;min-width:210px" placeholder="Escribí una localidad, ej. San Francisco">
-        <button class="btn dark" id="addTypedLocality" type="button">+ Agregar</button>
+  if(!$('routeModal')||$('localitiesBtn'))return false;
+  $('routeSuggestBox')?.remove();$('simpleRouteBox')?.remove();
+
+  const routesBtn=$('routesBtn');
+  routesBtn?.insertAdjacentHTML('afterend','<button id="localitiesBtn">⌖ Localidades</button>');
+
+  document.body.insertAdjacentHTML('beforeend',`
+    <div class="spares-modal" id="localitiesModal"><div class="spares-dialog" style="width:min(650px,100%)">
+      <div class="head"><div><h2 style="margin:0">Localidades</h2><div class="sub">Cargalas una sola vez y después seleccionalas al crear recorridos.</div></div><button class="close" id="closeLocalities">×</button></div>
+      <div class="sec">
+        <div class="spares-field"><label>Nueva localidad</label><div style="display:flex;gap:8px"><input id="newLocalityName" placeholder="Ej. San Francisco"><button class="btn red" id="addLocalityBtn" type="button">+ Agregar</button></div></div>
       </div>
-      <div id="localitySearchStatus" class="sub" style="margin-top:7px"></div>
-      <div id="localityResults" style="display:none;gap:7px;margin-top:8px"></div>
-      <div id="simpleStops" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px"></div>
+      <div class="sec"><div class="sectop"><b>Localidades cargadas</b><span class="sub" id="localityCount"></span></div><div id="localitiesList" class="category-list"></div></div>
+    </div></div>`);
+
+  const grid=$('routeOrigin')?.closest('.spares-grid');
+  if(!grid)return false;
+  $('routeOrigin').setAttribute('list','carrierLocalitiesDatalist');
+  $('routeDestination').setAttribute('list','carrierLocalitiesDatalist');
+  grid.insertAdjacentHTML('afterend',`
+    <datalist id="carrierLocalitiesDatalist"></datalist>
+    <div id="routeLocalitiesBox" style="margin-top:14px;padding:14px;border:1px solid #303036;border-radius:12px;background:#151518">
+      <div><b>¿Por qué localidades pasa?</b><div class="sub">Tocá las localidades que correspondan a este recorrido.</div></div>
+      <input id="routeLocalityPickerSearch" class="spares-input" style="margin-top:12px;width:100%" placeholder="Buscar dentro de mis localidades...">
+      <div id="routeLocalityChoices" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-top:12px"></div>
+      <div id="noRouteLocalities" class="sub" style="margin-top:10px;display:none">Todavía no cargaste localidades. Entrá en <b>Localidades</b> para agregarlas.</div>
     </div>`);
-  $('localitySearch').addEventListener('input',onSearchInput);$('localitySearch').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addTypedLocality()}});$('addTypedLocality').onclick=addTypedLocality;
-  const oldBtn=$('addRoute');if(oldBtn){const fresh=oldBtn.cloneNode(true);oldBtn.replaceWith(fresh);fresh.onclick=saveRoute}
+
+  const oldAdd=$('addRoute');if(oldAdd){const fresh=oldAdd.cloneNode(true);oldAdd.replaceWith(fresh);fresh.onclick=saveRoute}
+  $('localitiesBtn').onclick=openLocalities;$('closeLocalities').onclick=closeLocalities;$('addLocalityBtn').onclick=addLocality;
+  $('newLocalityName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addLocality()}});
+  $('localitiesModal').onclick=e=>{if(e.target.id==='localitiesModal')closeLocalities()};
+  $('routeLocalityPickerSearch').oninput=filterRouteChoices;
+
   const filters=$('carrierSearch')?.parentElement;if(filters&&!$('routeLocalitySearch')){const i=document.createElement('input');i.id='routeLocalitySearch';i.className='spares-input';i.placeholder='Buscar localidad del recorrido...';i.oninput=applyLocalityFilter;filters.appendChild(i)}
-  const list=$('routeList');if(list)new MutationObserver(()=>enhanceRouteList()).observe(list,{childList:true,subtree:true});
   if($('carrierRows'))new MutationObserver(()=>applyLocalityFilter()).observe($('carrierRows'),{childList:true,subtree:true});
   if($('favoriteCarrierRows'))new MutationObserver(()=>applyLocalityFilter()).observe($('favoriteCarrierRows'),{childList:true,subtree:true});
   refreshData();return true;
 }
+
+function openLocalities(){$('localitiesModal').classList.add('show');$('newLocalityName').focus();refreshData()}
+function closeLocalities(){$('localitiesModal').classList.remove('show')}
+async function addLocality(){
+  const name=$('newLocalityName').value.trim();if(!name)return;
+  const {data:{session}}=await sb.auth.getSession();
+  const {error}=await sb.from('carrier_localities').insert({name,created_by:session?.user?.email||null});
+  if(error){alert(error.code==='23505'?'Esa localidad ya está cargada.':error.message);return}
+  $('newLocalityName').value='';await refreshData();$('newLocalityName').focus();
+}
+async function removeLocality(id){
+  const l=localities.find(x=>Number(x.id)===Number(id));if(!l)return;
+  if(!confirm(`¿Eliminar ${l.name} de la lista de localidades? Los recorridos ya guardados no se modificarán.`))return;
+  const {error}=await sb.from('carrier_localities').delete().eq('id',id);if(error){alert(error.message);return}await refreshData();
+}
+function renderLocalities(){
+  const box=$('localitiesList');if(!box)return;$('localityCount').textContent=`${localities.length} cargada${localities.length===1?'':'s'}`;
+  box.innerHTML=localities.length?localities.map(l=>`<div class="category-item"><span><b>${esc(l.name)}</b></span><button class="mini remove-locality" data-id="${l.id}">Eliminar</button></div>`).join(''):'<div class="spares-empty">Todavía no hay localidades cargadas.</div>';
+  box.querySelectorAll('.remove-locality').forEach(b=>b.onclick=()=>removeLocality(+b.dataset.id));
+  const dl=$('carrierLocalitiesDatalist');if(dl)dl.innerHTML=localities.map(l=>`<option value="${esc(l.name)}"></option>`).join('');
+}
+function renderRouteChoices(){
+  const box=$('routeLocalityChoices');if(!box)return;const current=new Set(selectedStops().map(norm));
+  box.innerHTML=localities.map(l=>localityCheckbox(l.name)).join('');
+  box.querySelectorAll('.route-locality-check').forEach(ch=>{ch.checked=current.has(norm(ch.value))});
+  $('noRouteLocalities').style.display=localities.length?'none':'';filterRouteChoices();
+}
+function filterRouteChoices(){const q=norm($('routeLocalityPickerSearch')?.value||'');document.querySelectorAll('.route-locality-option').forEach(x=>x.style.display=!q||x.dataset.search.includes(q)?'flex':'none')}
+
 async function saveRoute(){
   const origin=$('routeOrigin').value.trim(),destination=$('routeDestination').value.trim();if(!origin||!destination){alert('Ingresá origen y destino.');return}
   const stops=selectedStops();const {error}=await sb.from('carrier_routes').insert({origin,destination,intermediate_stops:stops});
   if(error){alert(error.code==='23505'?'Ese recorrido ya existe.':error.message);return}
-  $('routeOrigin').value='';$('routeDestination').value='';renderStops([]);$('localitySearch').value='';renderSearchResults([]);$('localitySearchStatus').textContent='';
-  await refreshData();
+  $('routeOrigin').value='';$('routeDestination').value='';$('routeLocalityPickerSearch').value='';document.querySelectorAll('.route-locality-check').forEach(x=>x.checked=false);await refreshData();
 }
-function enhanceRouteList(){
-  const list=$('routeList');if(!list)return;
-  list.querySelectorAll('.category-item').forEach(item=>{
-    const id=Number(item.querySelector('.remove-route')?.dataset.id),r=routes.find(x=>Number(x.id)===id);if(!r)return;
-    item.querySelector('.simple-route-extra')?.remove();const stops=Array.isArray(r.intermediate_stops)?r.intermediate_stops:[];if(!stops.length)return;
-    item.querySelector('span')?.insertAdjacentHTML('beforeend',`<div class="simple-route-extra sub" style="margin-top:5px">Pasa por: ${esc(stops.join(' · '))}</div>`)
-  })
+async function removeRoute(id){
+  const r=routes.find(x=>Number(x.id)===Number(id));if(!r||!confirm(`¿Eliminar el recorrido ${routeLabel(r)}?`))return;
+  const {error}=await sb.from('carrier_routes').delete().eq('id',id);if(error){alert(error.message);return}await refreshData();
+}
+function renderRoutes(){
+  const box=$('routeList');if(!box)return;
+  box.innerHTML=routes.length?routes.map(r=>`<div class="category-item"><span><b>${esc(routeLabel(r))}</b>${Array.isArray(r.intermediate_stops)&&r.intermediate_stops.length?`<div class="sub" style="margin-top:5px">Pasa por: ${esc(r.intermediate_stops.join(' · '))}</div>`:''}</span><button class="mini route-remove-custom" data-id="${r.id}">Eliminar</button></div>`).join(''):'<div class="spares-empty">Todavía no hay recorridos creados.</div>';
+  box.querySelectorAll('.route-remove-custom').forEach(b=>b.onclick=()=>removeRoute(+b.dataset.id));
+}
+function syncRouteSelects(){
+  const options=routes.map(r=>`<option value="${r.id}">${esc(routeLabel(r))}</option>`).join('');
+  const rf=$('routeFilter');if(rf){const old=rf.value;rf.innerHTML='<option value="">Todos los recorridos</option>'+options;rf.value=old}
+  const cr=$('carrierRoute');if(cr){const old=cr.value;cr.innerHTML='<option value="">Sin recorrido</option>'+options;cr.value=old}
 }
 function applyLocalityFilter(){
   const q=norm($('routeLocalitySearch')?.value||'');document.querySelectorAll('.carrier-row').forEach(row=>{if(!q){row.style.display='';return}const rid=carrierRoutes.get(Number(row.dataset.id)),r=routes.find(x=>Number(x.id)===rid);const text=norm([r?.origin,r?.destination,...(Array.isArray(r?.intermediate_stops)?r.intermediate_stops:[])].join(' '));row.style.display=text.includes(q)?'':'none'})
 }
+
 const boot=()=>{if(ensureUI())return;const obs=new MutationObserver(()=>{if(ensureUI())obs.disconnect()});obs.observe(document.body,{childList:true,subtree:true});setTimeout(()=>ensureUI(),700)};boot();
