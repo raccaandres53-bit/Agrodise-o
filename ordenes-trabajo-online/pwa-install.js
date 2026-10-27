@@ -3,6 +3,24 @@ const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||
 const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
 const isAndroid=()=>/android/i.test(navigator.userAgent);
 
+function ensurePwaHead(){
+  if(!document.querySelector('link[rel="manifest"]')){
+    const manifest=document.createElement('link');manifest.rel='manifest';manifest.href='./manifest.webmanifest';document.head.appendChild(manifest);
+  }
+  if(!document.querySelector('meta[name="apple-mobile-web-app-capable"]')){
+    const m=document.createElement('meta');m.name='apple-mobile-web-app-capable';m.content='yes';document.head.appendChild(m);
+  }
+  if(!document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')){
+    const m=document.createElement('meta');m.name='apple-mobile-web-app-status-bar-style';m.content='black-translucent';document.head.appendChild(m);
+  }
+  if(!document.querySelector('meta[name="apple-mobile-web-app-title"]')){
+    const m=document.createElement('meta');m.name='apple-mobile-web-app-title';m.content='AgroDiseño';document.head.appendChild(m);
+  }
+  if(!document.querySelector('link[rel="apple-touch-icon"]')){
+    const icon=document.createElement('link');icon.rel='apple-touch-icon';icon.href='./pwa-icon-192.svg';document.head.appendChild(icon);
+  }
+}
+
 function injectStyles(){
   if(document.getElementById('pwaInstallStyles'))return;
   const st=document.createElement('style');
@@ -18,7 +36,7 @@ function injectStyles(){
 }
 
 function showIOSHelp(){
-  alert('Para agregar AgroDiseño al inicio en iPhone/iPad:\n\n1. Tocá Compartir en Safari.\n2. Elegí “Añadir a pantalla de inicio”.\n3. Tocá “Añadir”.');
+  alert('Para agregar AgroDiseño al inicio en iPhone/iPad:\n\n1. Abrí esta página en Safari.\n2. Tocá Compartir.\n3. Elegí “Añadir a pantalla de inicio”.\n4. Tocá “Añadir”.');
 }
 function showAndroidHelp(){
   alert('Si no aparece la instalación automática:\n\n1. Abrí el menú ⋮ de Chrome.\n2. Elegí “Instalar app” o “Añadir a pantalla principal”.');
@@ -36,7 +54,7 @@ async function installApp(){
   }
   if(isIOS()){showIOSHelp();return;}
   if(isAndroid()){showAndroidHelp();return;}
-  alert('En tu navegador podés instalar AgroDiseño desde el menú del navegador usando “Instalar app” o “Añadir a pantalla de inicio”.');
+  alert('En tu navegador podés instalar AgroDiseño desde el menú usando “Instalar app” o “Añadir a pantalla de inicio”.');
 }
 
 function syncButton(){
@@ -59,6 +77,7 @@ function ensureButton(){
   return true;
 }
 
+ensurePwaHead();
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault();
   deferredPrompt=e;
