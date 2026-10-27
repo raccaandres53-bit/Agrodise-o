@@ -1,3 +1,4 @@
+import './transportistas-relacion-fix.js';
 import './transportistas-core.js';
 import './transportistas-rutas-simple.js';
 import './transportistas-multiples-recorridos.js';
