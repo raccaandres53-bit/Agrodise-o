@@ -7,20 +7,35 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
 const norm=v=>String(v||'').trim().toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 let routes=[],localities=[],carrierRoutes=new Map();
+let refreshPromise=null;
 
 function routeLabel(r){return `${r.origin} ↔ ${r.destination}`}
 function selectedStops(){return [...document.querySelectorAll('.route-locality-check:checked')].map(x=>x.value)}
 function localityCheckbox(name){return `<label class="route-locality-option" data-search="${esc(norm(name))}" style="display:flex;align-items:center;gap:9px;border:1px solid #35353b;background:#1a1a1e;border-radius:10px;padding:10px 12px;cursor:pointer"><input type="checkbox" class="route-locality-check" value="${esc(name)}"><span>${esc(name)}</span></label>`}
 
 async function refreshData(){
-  const [{data:r,error:re},{data:l,error:le},{data:c}]=await Promise.all([
-    sb.from('carrier_routes').select('id,origin,destination,intermediate_stops,created_at').order('origin').order('destination'),
-    sb.from('carrier_localities').select('id,name,created_at').order('name'),
-    sb.from('carriers').select('id,route_id')
-  ]);
-  if(re||le){console.error(re||le);return}
-  routes=r||[];localities=l||[];carrierRoutes=new Map((c||[]).map(x=>[Number(x.id),Number(x.route_id)||null]));
-  renderLocalities();renderRouteChoices();renderRoutes();syncRouteSelects();applyLocalityFilter();
+  if(refreshPromise)return refreshPromise;
+  refreshPromise=(async()=>{
+    const [{data:r,error:re},{data:l,error:le},{data:c}]=await Promise.all([
+      sb.from('carrier_routes').select('id,origin,destination,intermediate_stops,created_at').order('origin').order('destination'),
+      sb.from('carrier_localities').select('id,name,created_at').order('name'),
+      sb.from('carriers').select('id,route_id')
+    ]);
+    if(re||le){console.error(re||le);return false}
+    routes=r||[];localities=l||[];carrierRoutes=new Map((c||[]).map(x=>[Number(x.id),Number(x.route_id)||null]));
+    renderLocalities();renderRouteChoices();renderRoutes();syncRouteSelects();applyLocalityFilter();
+    return true;
+  })();
+  try{return await refreshPromise}finally{refreshPromise=null}
+}
+
+async function openRoutesReady(){
+  const modal=$('routeModal');if(!modal)return;
+  modal.classList.remove('show');
+  await refreshData();
+  renderRouteChoices();renderRoutes();syncRouteSelects();
+  modal.classList.add('show');
+  $('routeOrigin')?.focus();
 }
 
 function ensureUI(){
@@ -52,6 +67,11 @@ function ensureUI(){
   $('newLocalityName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addLocality()}});
   $('localitiesModal').onclick=e=>{if(e.target.id==='localitiesModal')closeLocalities()};
   $('routeLocalityPickerSearch').oninput=filterRouteChoices;
+
+  // Reemplaza el flujo viejo: primero carga recorridos/localidades y recién después abre el modal.
+  routesBtn.onclick=openRoutesReady;
+  if($('manageRoutes'))$('manageRoutes').onclick=openRoutesReady;
+
   if($('carrierRows'))new MutationObserver(()=>applyLocalityFilter()).observe($('carrierRows'),{childList:true,subtree:true});
   if($('favoriteCarrierRows'))new MutationObserver(()=>applyLocalityFilter()).observe($('favoriteCarrierRows'),{childList:true,subtree:true});
   refreshData();return true;
