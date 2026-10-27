@@ -1,23 +1,42 @@
-const palette=['#d81f26','#2563eb','#16a34a','#f59e0b','#7c3aed','#0891b2','#db2777','#ea580c','#4f46e5','#65a30d'];
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.117.3';
 
-function categoryColor(value){
-  const key=String(value||'sin-rubro').replace(/ · adicional$/i,'').trim();
-  let hash=0;
-  for(let i=0;i<key.length;i++)hash=(hash*31+key.charCodeAt(i))>>>0;
-  return palette[hash%palette.length];
-}
+const sb=createClient('https://dcmlbriqiybegmwanwlf.supabase.co','sb_publishable_a2lQbgcdZ8fa9ANiOT5dIA_qyH0b_B_',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const colorsByName=new Map();
+let loading=false;
+
+function norm(v){return String(v||'').replace(/ · adicional$/i,'').trim().toLocaleLowerCase('es')}
 function contrastColor(hex){
-  const c=hex.replace('#','');
-  const r=parseInt(c.slice(0,2),16),g=parseInt(c.slice(2,4),16),b=parseInt(c.slice(4,6),16);
+  const c=String(hex||'#d81f26').replace('#','');
+  const r=parseInt(c.slice(0,2),16)||0,g=parseInt(c.slice(2,4),16)||0,b=parseInt(c.slice(4,6),16)||0;
   return ((r*299+g*587+b*114)/1000)>=145?'#111':'#fff';
 }
+
+async function loadColors(){
+  if(loading)return;
+  loading=true;
+  try{
+    const {data,error}=await sb.from('supplier_categories').select('name,color');
+    if(error){console.error('No se pudieron cargar colores de rubros',error);return;}
+    colorsByName.clear();
+    (data||[]).forEach(c=>colorsByName.set(norm(c.name),c.color||'#d81f26'));
+    recolorRubros();
+  }finally{loading=false}
+}
+
 function recolorRubros(){
   document.querySelectorAll('.spares-row td:nth-child(5) span').forEach(badge=>{
-    const name=(badge.textContent||'').replace(/ · adicional$/i,'').trim();
-    if(!name)return;
-    const color=categoryColor(name);
+    const key=norm(badge.textContent);
+    const color=colorsByName.get(key);
+    if(!color)return;
     badge.style.background=color;
     badge.style.color=contrastColor(color);
+  });
+
+  document.querySelectorAll('#categoryList .category-item').forEach(item=>{
+    const name=norm(item.querySelector('b')?.textContent);
+    const dot=item.querySelector('span span');
+    const color=colorsByName.get(name);
+    if(dot&&color)dot.style.background=color;
   });
 }
 
@@ -25,4 +44,5 @@ const observer=new MutationObserver(()=>setTimeout(recolorRubros,20));
 observer.observe(document.body,{childList:true,subtree:true});
 document.addEventListener('input',e=>{if(e.target?.id==='supplierSearch')setTimeout(recolorRubros,30)},true);
 document.addEventListener('change',e=>{if(e.target?.id==='categoryFilter')setTimeout(recolorRubros,30)},true);
-setTimeout(recolorRubros,300);
+document.addEventListener('click',e=>{if(e.target?.closest('#goSpares,#sparesHomeBtn,#manageCategories,#categoriesBtn'))setTimeout(loadColors,80)},true);
+loadColors();
