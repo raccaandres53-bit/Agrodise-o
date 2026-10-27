@@ -23,26 +23,35 @@ async function loadColors(){
   }finally{loading=false}
 }
 
+function lockBadgeColor(el,color){
+  el.style.setProperty('background',color,'important');
+  el.style.setProperty('background-color',color,'important');
+  el.style.setProperty('color',contrastColor(color),'important');
+  el.style.setProperty('transition','none','important');
+}
+
 function recolorRubros(){
   document.querySelectorAll('.spares-row td:nth-child(5) span').forEach(badge=>{
     const key=norm(badge.textContent);
     const color=colorsByName.get(key);
     if(!color)return;
-    badge.style.background=color;
-    badge.style.color=contrastColor(color);
+    lockBadgeColor(badge,color);
   });
 
   document.querySelectorAll('#categoryList .category-item').forEach(item=>{
     const name=norm(item.querySelector('b')?.textContent);
     const dot=item.querySelector('span span');
     const color=colorsByName.get(name);
-    if(dot&&color)dot.style.background=color;
+    if(dot&&color){
+      dot.style.setProperty('background',color,'important');
+      dot.style.setProperty('background-color',color,'important');
+    }
   });
 }
 
-const observer=new MutationObserver(()=>setTimeout(recolorRubros,20));
-observer.observe(document.body,{childList:true,subtree:true});
-document.addEventListener('input',e=>{if(e.target?.id==='supplierSearch')setTimeout(recolorRubros,30)},true);
-document.addEventListener('change',e=>{if(e.target?.id==='categoryFilter')setTimeout(recolorRubros,30)},true);
-document.addEventListener('click',e=>{if(e.target?.closest('#goSpares,#sparesHomeBtn,#manageCategories,#categoriesBtn'))setTimeout(loadColors,80)},true);
+const observer=new MutationObserver(()=>recolorRubros());
+observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['style']});
+document.addEventListener('input',e=>{if(e.target?.id==='supplierSearch')recolorRubros()},true);
+document.addEventListener('change',e=>{if(e.target?.id==='categoryFilter')recolorRubros()},true);
+document.addEventListener('click',e=>{if(e.target?.closest('#goSpares,#sparesHomeBtn,#manageCategories,#categoriesBtn'))setTimeout(loadColors,40)},true);
 loadColors();
