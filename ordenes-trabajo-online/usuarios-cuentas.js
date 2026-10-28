@@ -1,5 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.117.3';
-const sb=createClient('https://dcmlbriqiybegmwanwlf.supabase.co','sb_publishable_a2lQbgcdZ8fa9ANiOT5dIA_qyH0b_B_',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+import { sb } from './supabase-client.js';
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
 let running=false,refreshTimer=null;
 
@@ -29,7 +28,7 @@ async function refreshExtraAccounts(){
     }
     list.querySelectorAll('.authorize-extra').forEach(b=>b.onclick=()=>{
       document.getElementById('accessEmail').value=b.dataset.email||'';
-      ['permTaller','permRepuestos','permTransportistas','permUsers'].forEach(id=>document.getElementById(id).checked=false);
+      ['permTaller','permRepuestos','permTransportistas','permConocimiento','permUsers'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false});
       document.getElementById('accessEmail').focus();
     });
     const section=list.closest('.sec');const title=section?.querySelector('.sectop b');if(title)title.textContent='Cuentas y accesos';
