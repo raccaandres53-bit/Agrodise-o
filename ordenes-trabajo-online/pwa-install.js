@@ -4,6 +4,9 @@ const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
 const isAndroid=()=>/android/i.test(navigator.userAgent);
 
 function ensurePwaHead(){
+  if(!document.querySelector('link[href*="taller-mobile-cards.css"]')){
+    const mobile=document.createElement('link');mobile.rel='stylesheet';mobile.href='./taller-mobile-cards.css?v=20261028-1135';document.head.appendChild(mobile);
+  }
   if(!document.querySelector('link[rel="manifest"]')){
     const manifest=document.createElement('link');manifest.rel='manifest';manifest.href='./manifest.webmanifest';document.head.appendChild(manifest);
   }
