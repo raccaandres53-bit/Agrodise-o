@@ -1,4 +1,24 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.117.3';
+
+const sb=createClient('https://dcmlbriqiybegmwanwlf.supabase.co','sb_publishable_a2lQbgcdZ8fa9ANiOT5dIA_qyH0b_B_',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+let canKnowledge=false;
+
+async function loadPermission(){
+  const {data:{session}}=await sb.auth.getSession();
+  const email=session?.user?.email?.toLowerCase();
+  if(!email){canKnowledge=false;return false}
+  const {data,error}=await sb.from('allowed_users').select('can_conocimiento').eq('email',email).maybeSingle();
+  canKnowledge=!error&&!!data?.can_conocimiento;
+  return canKnowledge;
+}
+
+function removeKnowledgeCards(){
+  document.getElementById('goKnowledgeLauncher')?.remove();
+  document.getElementById('goKnowledge')?.remove();
+}
+
 function addKnowledgeLauncher(){
+  if(!canKnowledge){removeKnowledgeCards();return false}
   const cards=document.querySelector('#modulePicker .module-cards');
   if(!cards||document.getElementById('goKnowledgeLauncher')||document.getElementById('goKnowledge'))return false;
 
@@ -8,6 +28,7 @@ function addKnowledgeLauncher(){
   btn.innerHTML='<div class="module-icon">🧠</div><div class="module-name">Conocimiento</div><div class="module-desc">Modelos 3D, despiece, fallas, controles y procedimientos del taller.</div>';
 
   btn.onclick=async()=>{
+    if(!canKnowledge){alert('No tenés permiso para ingresar a Conocimiento.');return}
     if(btn.dataset.loading==='1')return;
     btn.dataset.loading='1';
     const original=btn.innerHTML;
@@ -22,7 +43,7 @@ function addKnowledgeLauncher(){
     }catch(err){
       console.error('Error al iniciar Conocimiento',err);
       alert('No se pudo abrir Conocimiento. Los demás módulos no fueron afectados.');
-      if(!document.getElementById('goKnowledgeLauncher')&&!document.getElementById('goKnowledge')){
+      if(canKnowledge&&!document.getElementById('goKnowledgeLauncher')&&!document.getElementById('goKnowledge')){
         btn.innerHTML=original;
         btn.dataset.loading='0';
         cards.appendChild(btn);
@@ -34,10 +55,21 @@ function addKnowledgeLauncher(){
   return true;
 }
 
-if(!addKnowledgeLauncher()){
-  const observer=new MutationObserver(()=>{
-    if(addKnowledgeLauncher())observer.disconnect();
-  });
-  observer.observe(document.body,{childList:true,subtree:true});
-  setTimeout(()=>addKnowledgeLauncher(),700);
+async function boot(){
+  await loadPermission();
+  if(!canKnowledge){removeKnowledgeCards();return}
+  if(!addKnowledgeLauncher()){
+    const observer=new MutationObserver(()=>{
+      if(!canKnowledge){observer.disconnect();removeKnowledgeCards();return}
+      if(addKnowledgeLauncher())observer.disconnect();
+    });
+    observer.observe(document.body,{childList:true,subtree:true});
+    setTimeout(()=>addKnowledgeLauncher(),700);
+  }
 }
+boot();
+
+sb.auth.onAuthStateChange(async()=>{
+  await loadPermission();
+  if(canKnowledge)addKnowledgeLauncher();else removeKnowledgeCards();
+});
