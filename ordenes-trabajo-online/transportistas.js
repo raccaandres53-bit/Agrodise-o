@@ -5,6 +5,6 @@ import './transportistas-multiples-recorridos.js?v=20261028-0835';
 import './transportistas-modal-fix.js';
 import './transportistas-recorridos-modal-fix.js';
 import './pwa-install.js';
-import './usuarios.js';
+import './usuarios.js?v=20261028-0845';
 import './auditoria.js';
 import './auditoria-logout.js';
