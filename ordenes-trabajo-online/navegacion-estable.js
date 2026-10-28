@@ -28,7 +28,17 @@ function mountHomeButtons(){
   if(carriersActions&&!document.getElementById('carriersHomeTop')){
     carriersActions.prepend(makeHomeButton('carriersHomeTop'));
   }
+
+  return {
+    spares:!!document.getElementById('sparesHomeTop'),
+    carriers:!!document.getElementById('carriersHomeTop')
+  };
 }
 
 mountHomeButtons();
-[100,300,700,1500].forEach(ms=>setTimeout(mountHomeButtons,ms));
+
+const navObserver=new MutationObserver(()=>{
+  const mounted=mountHomeButtons();
+  if(mounted.spares&&mounted.carriers)navObserver.disconnect();
+});
+navObserver.observe(document.body,{childList:true,subtree:true});
