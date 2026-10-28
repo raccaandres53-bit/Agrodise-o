@@ -1,8 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.117.3';
-
-const SUPABASE_URL='https://dcmlbriqiybegmwanwlf.supabase.co';
-const SUPABASE_KEY='sb_publishable_a2lQbgcdZ8fa9ANiOT5dIA_qyH0b_B_';
-const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+import { supabase } from './supabase-client.js';
 const $=id=>document.getElementById(id);
 
 // La planilla impresa/PDF usa Arial independientemente de la fuente de la interfaz.
@@ -37,7 +33,7 @@ function showToast(msg){
 }
 
 function currentOrderId(){
-  const m=($('code')?.textContent||'').match(/OT-(\\d+)/);
+  const m=($('code')?.textContent||'').match(/OT-(\d+)/);
   return m?Number(m[1]):null;
 }
 
