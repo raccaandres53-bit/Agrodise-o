@@ -17,6 +17,20 @@ function routeById(id){return routes.find(r=>Number(r.id)===Number(id))}
 function assignmentsFor(carrierId){return assignments.filter(a=>Number(a.carrier_id)===Number(carrierId))}
 function routeTextFor(carrierId){return assignmentsFor(carrierId).map(a=>{const r=routeById(a.route_id);return [r?.origin,r?.destination,...(Array.isArray(r?.intermediate_stops)?r.intermediate_stops:[])].join(' ')}).join(' ')}
 
+const ROUTE_COLORS=['#d81f26','#2563eb','#16a34a','#f59e0b','#7c3aed','#0891b2','#db2777','#ea580c','#4f46e5','#65a30d','#0f766e','#9333ea'];
+function routeColor(r){
+  const key=String(r?.id??routeLabel(r));
+  let hash=0;
+  for(let i=0;i<key.length;i++)hash=(hash*31+key.charCodeAt(i))>>>0;
+  return ROUTE_COLORS[hash%ROUTE_COLORS.length];
+}
+function contrastColor(hex){
+  const h=String(hex||'').replace('#','');
+  if(h.length!==6)return '#fff';
+  const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);
+  return ((r*299+g*587+b*114)/1000)>160?'#111':'#fff';
+}
+
 async function loadMultiData(){
   const [{data:r,error:re},{data:a,error:ae}]=await Promise.all([
     sb.from('carrier_routes').select('id,origin,destination,intermediate_stops').order('origin').order('destination'),
@@ -123,7 +137,8 @@ async function saveAssignments(carrierId,routeIds){
 
 function routeBadge(r,primary=false){
   if(!r)return '';
-  return `<span style="display:inline-block;background:${primary?'#d81f26':'#2d2d32'};color:#fff;padding:4px 9px;border-radius:999px;font-weight:700;margin:2px 4px 2px 0">${esc(routeLabel(r))}${primary?'':' · adicional'}</span>`
+  const color=routeColor(r);
+  return `<span style="display:inline-block;background:${color};color:${contrastColor(color)};padding:4px 9px;border-radius:999px;font-weight:700;margin:2px 4px 2px 0">${esc(routeLabel(r))}${primary?' · principal':' · adicional'}</span>`
 }
 function patchRows(){
   document.querySelectorAll('.carrier-row').forEach(row=>{
