@@ -23,18 +23,17 @@ function addKnowledgeLauncher(){
   const btn=document.createElement('button');
   btn.className='module-card';
   btn.id='goKnowledgeLauncher';
-  btn.innerHTML='<div class="module-icon">🧠</div><div class="module-name">Conocimiento</div><div class="module-desc">Modelos 3D, despiece, fallas, controles y procedimientos del taller.</div>';
+  btn.innerHTML='<div class="module-icon">🧠</div><div class="module-name">Conocimiento</div><div class="module-desc">Instructivos interactivos, capacitación y experiencia del taller.</div>';
 
   btn.onclick=async()=>{
     if(!canKnowledge){alert('No tenés permiso para ingresar a Conocimiento.');return}
     if(btn.dataset.loading==='1')return;
     btn.dataset.loading='1';
     const original=btn.innerHTML;
-    btn.innerHTML='<div class="module-icon">⏳</div><div class="module-name">Cargando...</div><div class="module-desc">Preparando el visor 3D.</div>';
+    btn.innerHTML='<div class="module-icon">⏳</div><div class="module-name">Cargando...</div><div class="module-desc">Preparando procedimientos y visor 3D.</div>';
     try{
       btn.remove();
-      await import('./conocimiento-v4.js?v=20261028-0085');
-      await import('./conocimiento-eliminar.js?v=20261028-0085');
+      await import('./conocimiento-v5.js?v=20261028-1215');
       const real=document.getElementById('goKnowledge');
       if(!real)throw new Error('No se pudo iniciar el módulo de Conocimiento.');
       real.click();
