@@ -47,6 +47,27 @@ main{padding:28px}.top{display:flex;justify-content:space-between;gap:20px;align
   .dialog .table td:last-child{text-align:right}
   .dialog .table td:last-child .mini,.dialog .table td:last-child button{min-width:44px;min-height:40px}
 
+  /* Listados principales: tarjetas en vez de tablas apretadas */
+  #clientsBox .table,#machinesBox .table,#historyBox .table{display:block;width:100%;background:transparent;border-radius:0;overflow:visible}
+  #clientsBox .table thead,#machinesBox .table thead,#historyBox .table thead{display:none}
+  #clientsBox .table tbody,#machinesBox .table tbody,#historyBox .table tbody{display:grid;gap:10px;width:100%}
+  #clientsBox .table tr,#machinesBox .table tr,#historyBox .table tr{display:grid;width:100%;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+  #clientsBox .table td,#machinesBox .table td,#historyBox .table td{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px;align-items:start;width:100%;padding:0;border:0;min-width:0;overflow-wrap:anywhere}
+  #clientsBox .table td::before,#machinesBox .table td::before,#historyBox .table td::before{color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;line-height:1.4}
+  #clientsBox .table td:nth-child(1)::before{content:'Cliente'}
+  #clientsBox .table td:nth-child(2)::before{content:'Órdenes'}
+  #clientsBox .table td:nth-child(3)::before{content:'Último ingreso'}
+  #machinesBox .table td:nth-child(1)::before{content:'Máquina'}
+  #machinesBox .table td:nth-child(2)::before{content:'Modelo'}
+  #machinesBox .table td:nth-child(3)::before{content:'Cliente'}
+  #machinesBox .table td:nth-child(4)::before{content:'Ingresos'}
+  #machinesBox .table td:nth-child(5)::before{content:'Último'}
+  #historyBox .table td:nth-child(1)::before{content:'OT'}
+  #historyBox .table td:nth-child(2)::before{content:'Fecha'}
+  #historyBox .table td:nth-child(3)::before{content:'Cliente'}
+  #historyBox .table td:nth-child(4)::before{content:'Máquina'}
+  #historyBox .table td:nth-child(5)::before{content:'Estado'}
+
   .acts{display:grid;grid-template-columns:1fr;gap:8px}.acts .btn{width:100%;min-height:48px}
   .photos{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.photo{min-width:0}.photo img{height:120px}
   .login-wrap{padding:14px}.login-card{padding:22px 18px}.login-title{font-size:27px}.login-actions{grid-template-columns:1fr}.login-card input{font-size:16px;min-height:46px}
@@ -55,6 +76,7 @@ main{padding:28px}.top{display:flex;justify-content:space-between;gap:20px;align
 @media(max-width:480px){
   main{padding-left:10px;padding-right:10px}
   .stats{grid-template-columns:1fr 1fr}.photos{grid-template-columns:1fr}.app>aside nav button{font-size:9.5px;padding:7px 2px}.dialog{padding-left:10px;padding-right:10px}.sectop{align-items:flex-start}.sectop .mini{max-width:45%;white-space:normal}
+  #clientsBox .table td,#machinesBox .table td,#historyBox .table td{grid-template-columns:82px minmax(0,1fr);gap:8px}
 }
 
 @media print{body{background:#fff;color:#000}.app,.modal,.login-wrap,.toast{display:none!important}.print{display:block!important}.print *{color:#000!important}@page{size:A4;margin:9mm}.ph{display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:7px}.pl{font-size:24px;font-weight:900}.pl b{color:#c00000!important}.pt{width:100%;border-collapse:collapse;margin-top:8px}.pt td,.pt th{border:1px solid #333;padding:5px;font-size:10px;height:24px}.pt th{background:#eee}.ttl{text-align:center;font-weight:800;margin:9px 0 4px}.notes{border:1px solid #333;min-height:95px;padding:7px}.sign{display:grid;grid-template-columns:1fr 1fr;margin-top:15px;gap:20px;font-size:10px}}
