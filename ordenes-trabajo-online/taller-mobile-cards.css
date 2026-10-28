@@ -1,0 +1,68 @@
+@media(max-width:900px){
+  #machinesBox .table,
+  #clientsBox .table,
+  #historyBox .table{background:transparent!important}
+
+  #machinesBox .table tbody,
+  #clientsBox .table tbody,
+  #historyBox .table tbody{gap:12px!important}
+
+  #machinesBox .table tr,
+  #clientsBox .table tr,
+  #historyBox .table tr{
+    position:relative;
+    display:grid!important;
+    background:linear-gradient(180deg,#17171a 0%,#121214 100%)!important;
+    border:1px solid #2b2b31!important;
+    border-radius:16px!important;
+    padding:14px!important;
+    box-shadow:0 8px 20px #0003;
+    gap:0!important;
+    overflow:hidden;
+  }
+
+  /* MAQUINAS */
+  #machinesBox .table tr{grid-template-columns:1fr 1fr!important;column-gap:14px!important}
+  #machinesBox .table td{display:block!important;grid-template-columns:none!important;padding:10px 0!important;border:0!important;min-width:0}
+  #machinesBox .table td::before{display:block;margin-bottom:4px;color:#777780!important;font-size:10px!important;letter-spacing:.06em}
+  #machinesBox .table td:nth-child(1){grid-column:1/-1;padding:0 0 12px!important;margin-bottom:4px;border-bottom:1px solid #28282d!important;font-size:17px;font-weight:900;line-height:1.2}
+  #machinesBox .table td:nth-child(1)::before{content:'MÁQUINA';color:#d51f27!important;font-size:10px!important}
+  #machinesBox .table td:nth-child(2)::before{content:'MODELO'}
+  #machinesBox .table td:nth-child(3)::before{content:'CLIENTE'}
+  #machinesBox .table td:nth-child(4)::before{content:'INGRESOS'}
+  #machinesBox .table td:nth-child(5)::before{content:'ÚLTIMO INGRESO'}
+  #machinesBox .table td:nth-child(2),#machinesBox .table td:nth-child(3){font-weight:700;color:#f2f2f4}
+  #machinesBox .table td:nth-child(4),#machinesBox .table td:nth-child(5){color:#c8c8ce}
+
+  /* CLIENTES */
+  #clientsBox .table tr{grid-template-columns:1fr 1fr!important;column-gap:14px!important}
+  #clientsBox .table td{display:block!important;grid-template-columns:none!important;padding:10px 0!important;border:0!important}
+  #clientsBox .table td::before{display:block;margin-bottom:4px;color:#777780!important;font-size:10px!important;letter-spacing:.06em}
+  #clientsBox .table td:nth-child(1){grid-column:1/-1;padding:0 0 12px!important;margin-bottom:4px;border-bottom:1px solid #28282d!important;font-size:17px;font-weight:900}
+  #clientsBox .table td:nth-child(1)::before{content:'CLIENTE';color:#d51f27!important}
+  #clientsBox .table td:nth-child(2)::before{content:'ÓRDENES'}
+  #clientsBox .table td:nth-child(3)::before{content:'ÚLTIMO INGRESO'}
+
+  /* HISTORIAL */
+  #historyBox .table tr{grid-template-columns:1fr 1fr!important;column-gap:14px!important}
+  #historyBox .table td{display:block!important;grid-template-columns:none!important;padding:9px 0!important;border:0!important}
+  #historyBox .table td::before{display:block;margin-bottom:4px;color:#777780!important;font-size:10px!important;letter-spacing:.06em}
+  #historyBox .table td:nth-child(1){font-size:16px;font-weight:900;color:#fff}
+  #historyBox .table td:nth-child(1)::before{content:'ORDEN';color:#d51f27!important}
+  #historyBox .table td:nth-child(2)::before{content:'FECHA'}
+  #historyBox .table td:nth-child(3){grid-column:1/-1;padding-top:11px!important;border-top:1px solid #28282d!important}
+  #historyBox .table td:nth-child(3)::before{content:'CLIENTE'}
+  #historyBox .table td:nth-child(4)::before{content:'MÁQUINA'}
+  #historyBox .table td:nth-child(5)::before{content:'ESTADO'}
+
+  #machinesBox,#clientsBox,#historyBox{padding-bottom:8px}
+}
+
+@media(max-width:380px){
+  #machinesBox .table tr,
+  #clientsBox .table tr,
+  #historyBox .table tr{grid-template-columns:1fr!important}
+  #machinesBox .table td:nth-child(1),
+  #clientsBox .table td:nth-child(1),
+  #historyBox .table td:nth-child(3){grid-column:1!important}
+}
