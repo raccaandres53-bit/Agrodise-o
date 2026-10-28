@@ -1,8 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.117.3';
-
-const SUPABASE_URL='https://dcmlbriqiybegmwanwlf.supabase.co';
-const SUPABASE_KEY='sb_publishable_a2lQbgcdZ8fa9ANiOT5dIA_qyH0b_B_';
-const sb=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+import { sb } from './supabase-client.js';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
 const norm=v=>String(v||'').trim().toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -68,7 +64,6 @@ function ensureUI(){
   $('localitiesModal').onclick=e=>{if(e.target.id==='localitiesModal')closeLocalities()};
   $('routeLocalityPickerSearch').oninput=filterRouteChoices;
 
-  // Reemplaza el flujo viejo: primero carga recorridos/localidades y recién después abre el modal.
   routesBtn.onclick=openRoutesReady;
   if($('manageRoutes'))$('manageRoutes').onclick=openRoutesReady;
 
