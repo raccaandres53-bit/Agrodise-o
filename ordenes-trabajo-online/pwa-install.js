@@ -1,5 +1,3 @@
-import './conocimiento.js?v=20261027-2315';
-
 let deferredPrompt=null;
 const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
 const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
