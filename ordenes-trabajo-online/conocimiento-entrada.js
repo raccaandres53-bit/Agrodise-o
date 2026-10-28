@@ -14,7 +14,7 @@ function addKnowledgeLauncher(){
     btn.innerHTML='<div class="module-icon">⏳</div><div class="module-name">Cargando...</div><div class="module-desc">Preparando el visor 3D.</div>';
     try{
       btn.remove();
-      await import('./conocimiento.js?v=20261028-0045');
+      await import('./conocimiento-v2.js?v=20261028-0055');
       const real=document.getElementById('goKnowledge');
       if(!real)throw new Error('No se pudo iniciar el módulo de Conocimiento.');
       real.click();
