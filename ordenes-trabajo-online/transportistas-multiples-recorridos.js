@@ -15,15 +15,17 @@ let rendering=false;
 function routeLabel(r){return r?`${r.origin} ↔ ${r.destination}`:'Sin recorrido'}
 function routeById(id){return routes.find(r=>Number(r.id)===Number(id))}
 function assignmentsFor(carrierId){return assignments.filter(a=>Number(a.carrier_id)===Number(carrierId))}
-function routeTextFor(carrierId){return assignmentsFor(carrierId).map(a=>{const r=a.carrier_routes||routeById(a.route_id);return [r?.origin,r?.destination,...(Array.isArray(r?.intermediate_stops)?r.intermediate_stops:[])].join(' ')}).join(' ')}
+function routeTextFor(carrierId){return assignmentsFor(carrierId).map(a=>{const r=routeById(a.route_id);return [r?.origin,r?.destination,...(Array.isArray(r?.intermediate_stops)?r.intermediate_stops:[])].join(' ')}).join(' ')}
 
 async function loadMultiData(){
   const [{data:r,error:re},{data:a,error:ae}]=await Promise.all([
     sb.from('carrier_routes').select('id,origin,destination,intermediate_stops').order('origin').order('destination'),
-    sb.from('carrier_route_assignments').select('carrier_id,route_id,is_primary,carrier_routes(id,origin,destination,intermediate_stops)')
+    sb.from('carrier_route_assignments').select('carrier_id,route_id,is_primary')
   ]);
-  if(re||ae){console.error('No se pudieron cargar recorridos múltiples',re||ae);return}
-  routes=r||[];assignments=a||[];
+  if(re)console.error('No se pudieron cargar recorridos',re);
+  if(ae)console.error('No se pudieron cargar asignaciones múltiples',ae);
+  routes=r||[];
+  assignments=a||[];
   syncExtraSelectOptions();
   patchRowsAndFilter();
 }
@@ -43,13 +45,23 @@ function ensureUI(){
   row.appendChild(btn);
   const extras=document.createElement('div');extras.id='carrierExtraRoutes';extras.style.cssText='display:grid;gap:8px;margin-top:9px';field.appendChild(extras);
   const hint=document.createElement('div');hint.className='sub';hint.textContent='Podés asociar más de un recorrido al mismo transportista.';hint.style.marginTop='6px';field.appendChild(hint);
-  btn.onclick=()=>addExtraRoute();
+  btn.onclick=async()=>{
+    if(!routes.length)await loadMultiData();
+    addExtraRoute();
+  };
   wrapSave();wrapFilters();attachOpenTracking();observeRows();loadMultiData();
   return true;
 }
 
 function optionsHtml(value=''){
-  return '<option value="">Elegir recorrido...</option>'+routes.map(r=>`<option value="${r.id}" ${String(r.id)===String(value)?'selected':''}>${esc(routeLabel(r))}</option>`).join('')
+  if(routes.length){
+    return '<option value="">Elegir recorrido...</option>'+routes.map(r=>`<option value="${r.id}" ${String(r.id)===String(value)?'selected':''}>${esc(routeLabel(r))}</option>`).join('');
+  }
+  const primary=$('carrierRoute');
+  if(primary){
+    return Array.from(primary.options).map(o=>`<option value="${esc(o.value)}" ${String(o.value)===String(value)?'selected':''}>${esc(o.textContent)}</option>`).join('');
+  }
+  return '<option value="">Elegir recorrido...</option>';
 }
 function addExtraRoute(value=''){
   const box=$('carrierExtraRoutes');if(!box)return;
@@ -68,7 +80,7 @@ function selectedRouteIds(){
 async function loadCarrierExtras(carrierId){
   const box=$('carrierExtraRoutes');if(!box)return;box.innerHTML='';
   if(!carrierId)return;
-  if(!assignments.length)await loadMultiData();
+  if(!routes.length||!assignments.length)await loadMultiData();
   const primary=Number($('carrierRoute')?.value)||0;
   assignmentsFor(carrierId).filter(a=>Number(a.route_id)!==primary).forEach(a=>addExtraRoute(a.route_id));
 }
@@ -118,7 +130,7 @@ function patchRows(){
     const id=Number(row.dataset.id);const list=assignmentsFor(id);if(!list.length)return;
     const cell=row.children[3];if(!cell)return;
     const sorted=[...list].sort((a,b)=>Number(b.is_primary)-Number(a.is_primary));
-    cell.innerHTML=sorted.map(a=>routeBadge(a.carrier_routes||routeById(a.route_id),a.is_primary)).join('');
+    cell.innerHTML=sorted.map(a=>routeBadge(routeById(a.route_id),a.is_primary)).join('');
   })
 }
 
