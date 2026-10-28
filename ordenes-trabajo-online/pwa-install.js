@@ -1,3 +1,5 @@
+import './form-accessibility.js?v=20261028-1155';
+
 let deferredPrompt=null;
 const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
 const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
