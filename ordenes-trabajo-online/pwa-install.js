@@ -10,6 +10,9 @@ function ensurePwaHead(){
   if(!document.querySelector('link[rel="manifest"]')){
     const manifest=document.createElement('link');manifest.rel='manifest';manifest.href='./manifest.webmanifest';document.head.appendChild(manifest);
   }
+  if(!document.querySelector('meta[name="mobile-web-app-capable"]')){
+    const m=document.createElement('meta');m.name='mobile-web-app-capable';m.content='yes';document.head.appendChild(m);
+  }
   if(!document.querySelector('meta[name="apple-mobile-web-app-capable"]')){
     const m=document.createElement('meta');m.name='apple-mobile-web-app-capable';m.content='yes';document.head.appendChild(m);
   }
