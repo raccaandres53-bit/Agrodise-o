@@ -36,7 +36,6 @@ function addKnowledgeLauncher(){
       await import('./conocimiento-v5.js?v=20261028-1215');
       await import('./conocimiento-media.js?v=20261029-1505');
       await import('./conocimiento-visual-pro.js?v=20261029-1635');
-      await import('./conocimiento-component-names.js?v=20261029-1840');
       const real=document.getElementById('goKnowledge');
       if(!real)throw new Error('No se pudo iniciar el módulo de Conocimiento.');
       real.click();
