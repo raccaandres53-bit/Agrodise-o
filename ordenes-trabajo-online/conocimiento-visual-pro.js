@@ -11,7 +11,7 @@ const originals=new Map();
 
 function ensureCss(){
   if(document.querySelector('link[href*="conocimiento-visual-pro.css"]')) return;
-  const l=document.createElement('link');l.rel='stylesheet';l.href='./conocimiento-visual-pro.css?v=20261029-1825';document.head.appendChild(l);
+  const l=document.createElement('link');l.rel='stylesheet';l.href='./conocimiento-visual-pro.css?v=20261029-1635';document.head.appendChild(l);
 }
 
 function activeAssetId(){
@@ -43,13 +43,13 @@ function buildShell(target){
 
 function setupScene(){
   scene=new THREE.Scene();
-  scene.background=new THREE.Color(0x101114);
+  scene.background=new THREE.Color(0xf4f5f7);
   camera=new THREE.PerspectiveCamera(35,1,0.01,10000);
   renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
   renderer.outputColorSpace=THREE.SRGBColorSpace;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure=1.15;
+  renderer.toneMappingExposure=1.08;
   renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   host.appendChild(renderer.domElement);
@@ -58,10 +58,11 @@ function setupScene(){
   scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
   pmrem.dispose();
 
-  scene.add(new THREE.HemisphereLight(0xffffff,0x3b4350,1.7));
-  const key=new THREE.DirectionalLight(0xffffff,3.2);key.position.set(4,7,5);key.castShadow=true;key.shadow.mapSize.set(2048,2048);scene.add(key);
-  const fill=new THREE.DirectionalLight(0xbfd7ff,1.5);fill.position.set(-5,2,4);scene.add(fill);
-  const rim=new THREE.DirectionalLight(0xffd9c2,1.2);rim.position.set(1,4,-6);scene.add(rim);
+  scene.add(new THREE.HemisphereLight(0xffffff,0xb9c0c9,2.15));
+  const key=new THREE.DirectionalLight(0xffffff,3.0);key.position.set(4,7,5);key.castShadow=true;key.shadow.mapSize.set(2048,2048);scene.add(key);
+  const fill=new THREE.DirectionalLight(0xdbe9ff,1.25);fill.position.set(-5,2,4);scene.add(fill);
+  const rim=new THREE.DirectionalLight(0xffeee4,0.9);rim.position.set(1,4,-6);scene.add(rim);
+  const front=new THREE.DirectionalLight(0xffffff,0.65);front.position.set(0,1,7);scene.add(front);
 
   controls=new OrbitControls(camera,renderer.domElement);
   controls.enableDamping=true;controls.dampingFactor=.065;controls.zoomToCursor=true;controls.screenSpacePanning=true;
@@ -86,9 +87,9 @@ function prepModel(root){
     o.material=Array.isArray(o.material)?o.material.map(m=>m.clone()):o.material.clone();
     const mats=Array.isArray(o.material)?o.material:[o.material];
     mats.forEach(m=>{
-      if('roughness' in m) m.roughness=Math.min(Math.max(m.roughness??.55,.28),.82);
-      if('metalness' in m) m.metalness=Math.min(Math.max(m.metalness??.25,.05),.85);
-      if('envMapIntensity' in m) m.envMapIntensity=1.25;
+      if('roughness' in m) m.roughness=Math.min(Math.max(m.roughness??.55,.32),.78);
+      if('metalness' in m) m.metalness=Math.min(Math.max(m.metalness??.25,.08),.8);
+      if('envMapIntensity' in m) m.envMapIntensity=1.1;
       m.needsUpdate=true;
     });
     rememberMaterial(o);meshes.push(o);
@@ -106,7 +107,7 @@ function addFloor(box){
   const old=scene.getObjectByName('kvpro-floor');if(old)scene.remove(old);
   const size=Math.max(modelSize*4,10);
   const geo=new THREE.PlaneGeometry(size,size);
-  const mat=new THREE.ShadowMaterial({color:0x000000,opacity:.22});
+  const mat=new THREE.ShadowMaterial({color:0x343a40,opacity:.13});
   const floor=new THREE.Mesh(geo,mat);floor.name='kvpro-floor';floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;
   floor.position.y=box.min.y-modelSize*.035;scene.add(floor);
 }
@@ -139,10 +140,10 @@ function applySelection(mesh){
     const mats=Array.isArray(m.material)?m.material:[m.material];
     if(m===mesh){
       m.visible=true;
-      mats.forEach(mat=>{mat.transparent=false;mat.opacity=1;mat.depthWrite=true;if(mat.emissive){mat.emissive.setHex(0xd7a400);mat.emissiveIntensity=.6}if('envMapIntensity'in mat)mat.envMapIntensity=1.5;mat.needsUpdate=true});
+      mats.forEach(mat=>{mat.transparent=false;mat.opacity=1;mat.depthWrite=true;if(mat.emissive){mat.emissive.setHex(0xe6b800);mat.emissiveIntensity=.42}if('envMapIntensity'in mat)mat.envMapIntensity=1.3;mat.needsUpdate=true});
     }else if(isolated){m.visible=false}
     else{
-      mats.forEach(mat=>{mat.transparent=true;mat.opacity=.18;mat.depthWrite=false;if(mat.emissive){mat.emissive.setHex(0x000000);mat.emissiveIntensity=0}mat.needsUpdate=true});
+      mats.forEach(mat=>{mat.transparent=true;mat.opacity=.24;mat.depthWrite=false;if(mat.emissive){mat.emissive.setHex(0x000000);mat.emissiveIntensity=0}mat.needsUpdate=true});
     }
   });
 }
