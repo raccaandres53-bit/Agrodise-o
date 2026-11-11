@@ -114,8 +114,68 @@ async function uploadPhoto(){
  $("photoFile").value="";await editOrder(current);toast("Foto subida")
 }
 async function renderPhotos(ps){
- const out=[];for(const p of ps){const {data}=await supabase.storage.from("order-photos").createSignedUrl(p.path,3600);out.push(`<div class="photo"><img src="${esc(data?.signedUrl||"")}" alt=""><div><span class="sub">${esc(p.original_name)}</span><br><button class="mini delphoto" data-id="${p.id}" data-path="${esc(p.path)}">Eliminar</button></div></div>`)}
- $("photos").innerHTML=out.length?out.join(""):"<div class='sub'>Sin fotos cargadas.</div>";document.querySelectorAll(".delphoto").forEach(b=>b.onclick=()=>deletePhoto(+b.dataset.id,b.dataset.path))
+ const out=[];
+ for(let i=0;i<ps.length;i++){
+  const p=ps[i],{data}=await supabase.storage.from("order-photos").createSignedUrl(p.path,3600);
+  const url=data?.signedUrl||"";
+  out.push(`<div class="photo"><button type="button" class="photo-preview" data-photo-index="${i}" aria-label="Ver foto ampliada"><img src="${esc(url)}" alt="${esc(p.original_name||"Foto de la máquina")}" loading="lazy"></button><div><span class="sub">${esc(p.original_name||"Foto")}</span><div class="photo-actions"><button type="button" class="mini photo-open" data-photo-index="${i}">Ver grande</button><button type="button" class="mini photo-download" data-photo-index="${i}">Descargar</button><button type="button" class="mini delphoto" data-id="${p.id}" data-path="${esc(p.path)}">Eliminar</button></div></div></div>`);
+ }
+ $("photos").innerHTML=out.length?out.join(""):"<div class='sub'>Sin fotos cargadas.</div>";
+ $("photos").querySelectorAll(".photo-preview,.photo-open").forEach(button=>button.onclick=()=>openOrderPhoto(ps[Number(button.dataset.photoIndex)]));
+ $("photos").querySelectorAll(".photo-download").forEach(button=>button.onclick=()=>downloadOrderPhoto(ps[Number(button.dataset.photoIndex)],button));
+ $("photos").querySelectorAll(".delphoto").forEach(button=>button.onclick=()=>deletePhoto(+button.dataset.id,button.dataset.path));
+}
+let activePhotoObjectUrl=null;
+function closeOrderPhoto(){
+ const viewer=document.getElementById("orderPhotoViewer");
+ if(viewer)viewer.remove();
+ if(activePhotoObjectUrl){URL.revokeObjectURL(activePhotoObjectUrl);activePhotoObjectUrl=null}
+ document.removeEventListener("keydown",orderPhotoEscape);
+}
+function orderPhotoEscape(event){if(event.key==="Escape")closeOrderPhoto()}
+async function openOrderPhoto(photo){
+ if(!photo)return;
+ closeOrderPhoto();
+ const viewer=document.createElement("div");viewer.id="orderPhotoViewer";viewer.className="order-photo-viewer";
+ viewer.innerHTML=`<div class="order-photo-toolbar"><strong class="order-photo-title"></strong><div class="order-photo-buttons"><button type="button" data-photo-action="minus" aria-label="Alejar">−</button><button type="button" data-photo-action="plus" aria-label="Acercar">+</button><button type="button" data-photo-action="reset">Ajustar</button><button type="button" data-photo-action="download">Descargar original</button><button type="button" data-photo-action="close" aria-label="Cerrar foto">✕</button></div></div><div class="order-photo-stage"><p>Cargando foto…</p></div>`;
+ viewer.querySelector(".order-photo-title").textContent=photo.original_name||"Foto de la máquina";
+ document.body.appendChild(viewer);
+ document.addEventListener("keydown",orderPhotoEscape);
+ const stage=viewer.querySelector(".order-photo-stage");
+ let zoom=1;
+ const applyZoom=()=>{const img=stage.querySelector("img");if(img)img.style.transform=`scale(${zoom})`};
+ const setZoom=value=>{zoom=Math.max(1,Math.min(6,value));applyZoom()};
+ viewer.querySelector('[data-photo-action="close"]').onclick=closeOrderPhoto;
+ viewer.querySelector('[data-photo-action="minus"]').onclick=()=>setZoom(zoom/1.4);
+ viewer.querySelector('[data-photo-action="plus"]').onclick=()=>setZoom(zoom*1.4);
+ viewer.querySelector('[data-photo-action="reset"]').onclick=()=>setZoom(1);
+ viewer.querySelector('[data-photo-action="download"]').onclick=e=>downloadOrderPhoto(photo,e.currentTarget);
+ viewer.addEventListener("click",e=>{if(e.target===viewer)closeOrderPhoto()});
+ stage.addEventListener("wheel",e=>{if(!stage.querySelector("img"))return;e.preventDefault();setZoom(zoom*(e.deltaY<0?1.15:1/1.15))},{passive:false});
+ let pinchStart=0,pinchZoom=1;
+ stage.addEventListener("touchstart",e=>{if(e.touches.length===2){pinchStart=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);pinchZoom=zoom}},{passive:true});
+ stage.addEventListener("touchmove",e=>{if(e.touches.length===2&&pinchStart){e.preventDefault();const distance=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);setZoom(pinchZoom*distance/pinchStart)}},{passive:false});
+ stage.addEventListener("touchend",()=>{pinchStart=0},{passive:true});
+ const {data,error}=await supabase.storage.from("order-photos").download(photo.path);
+ if(!viewer.isConnected)return;
+ if(error||!data){stage.textContent="No se pudo abrir la foto. Intentá nuevamente.";return}
+ activePhotoObjectUrl=URL.createObjectURL(data);
+ stage.innerHTML="";
+ const img=document.createElement("img");img.src=activePhotoObjectUrl;img.alt=photo.original_name||"Foto";img.draggable=false;
+ img.addEventListener("dblclick",()=>setZoom(zoom===1?2.5:1));
+ stage.appendChild(img);
+}
+async function downloadOrderPhoto(photo,button){
+ if(!photo)return;
+ const previous=button?.textContent;if(button){button.disabled=true;button.textContent="Descargando…"}
+ try{
+  const {data,error}=await supabase.storage.from("order-photos").download(photo.path);
+  if(error||!data)throw error||new Error("No se pudo descargar la foto");
+  const url=URL.createObjectURL(data),link=document.createElement("a");
+  link.href=url;link.download=photo.original_name||"foto-maquina.jpg";document.body.appendChild(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+ }catch(error){console.error("Descarga de foto",error);toast("No se pudo descargar la foto. Intentá nuevamente.")}
+ finally{if(button){button.disabled=false;button.textContent=previous}}
 }
 async function deletePhoto(id,path){if(!confirm("¿Eliminar foto?"))return;await supabase.storage.from("order-photos").remove([path]);await supabase.from("photos").delete().eq("id",id);await editOrder(current)}
 function printOrder(){let o=collect(),t=o.tasks.map(x=>`<tr><td>${esc(x.description)}</td><td style="text-align:center">□</td><td></td></tr>`).join("")+Array.from({length:Math.max(4,9-o.tasks.length)},()=>"<tr><td></td><td style='text-align:center'>□</td><td></td></tr>").join(""),c=o.checklist.slice(0,12).map(x=>`<tr><td>${esc(x.item)}</td><td></td><td>${esc(x.comment)}</td></tr>`).join(""),p=o.parts.map(x=>`<tr><td>${x.qty}</td><td>${esc(x.description)}</td><td>${esc(x.sector)}</td><td></td></tr>`).join("")+Array.from({length:Math.max(4,8-o.parts.length)},()=>"<tr><td></td><td></td><td></td><td></td></tr>").join("");$("print").innerHTML=`<div class="ph"><div><div class="pl">AGRO<b>DISEÑO</b></div><div style="font-size:10px">ORDEN DE TRABAJO</div></div><b>OT-${current?String(current).padStart(4,"0"):"____"}</b></div><div style="font-size:11px;line-height:1.7;margin-top:7px"><b>CLIENTE:</b> ${esc(o.client)}<br><b>MÁQUINA:</b> ${esc(o.machine)} &nbsp; <b>MODELO:</b> ${esc(o.model)}<br><b>SERIE:</b> ${esc(o.serial)} &nbsp; <b>OPERARIO:</b> ${esc(o.operator)} &nbsp; <b>FECHA:</b> ${fmtDate(o.date_in)}</div><div class="ttl">TRABAJOS A REALIZAR</div><table class="pt"><tr><th>Trabajo</th><th style="width:50px">Hecho</th><th style="width:210px">Observación / medida</th></tr>${t}</table><div class="ttl">CONTROL DE INGRESO</div><table class="pt"><tr><th>Elemento</th><th style="width:80px">Estado</th><th>Comentario</th></tr>${c}</table><div class="ttl">PIEZAS / REPUESTOS</div><table class="pt"><tr><th style="width:50px">Cant.</th><th>Descripción</th><th style="width:95px">Sector</th><th style="width:55px">Listo</th></tr>${p}</table><div class="ttl">TRABAJOS ENCONTRADOS / ANOTACIONES DE TALLER</div><div class="notes">${esc(o.observations)}</div><div class="sign"><div>FIRMA OPERARIO: ____________________________</div><div>FECHA FINALIZACIÓN: ____________________</div></div>`;window.print()}
