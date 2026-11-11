@@ -80,3 +80,11 @@ main{padding:28px}.top{display:flex;justify-content:space-between;gap:20px;align
 }
 
 @media print{body{background:#fff;color:#000}.app,.modal,.login-wrap,.toast{display:none!important}.print{display:block!important}.print *{color:#000!important}@page{size:A4;margin:9mm}.ph{display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:7px}.pl{font-size:24px;font-weight:900}.pl b{color:#c00000!important}.pt{width:100%;border-collapse:collapse;margin-top:8px}.pt td,.pt th{border:1px solid #333;padding:5px;font-size:10px;height:24px}.pt th{background:#eee}.ttl{text-align:center;font-weight:800;margin:9px 0 4px}.notes{border:1px solid #333;min-height:95px;padding:7px}.sign{display:grid;grid-template-columns:1fr 1fr;margin-top:15px;gap:20px;font-size:10px}}
+/* Corrección de formularios: siempre por encima del menú móvil */
+#modal.modal{z-index:1000}
+@media(max-width:900px){
+  #modal.modal{height:100dvh;max-height:100dvh;align-items:flex-end}
+  #modal .dialog{max-height:100dvh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scroll-padding-bottom:105px}
+  #modal .acts{position:sticky;bottom:0;z-index:6;background:#111113;padding:12px 0 calc(12px + env(safe-area-inset-bottom));border-top:1px solid #34343a;margin-bottom:0}
+  #modal .acts .btn{min-height:48px}
+}
