@@ -117,53 +117,90 @@ async function renderPhotos(ps){
  const out=[];
  for(let i=0;i<ps.length;i++){
   const p=ps[i],{data}=await supabase.storage.from("order-photos").createSignedUrl(p.path,3600);
-  const url=data?.signedUrl||"";
-  out.push(`<div class="photo"><button type="button" class="photo-preview" data-photo-index="${i}" aria-label="Ver foto ampliada"><img src="${esc(url)}" alt="${esc(p.original_name||"Foto de la máquina")}" loading="lazy"></button><div><span class="sub">${esc(p.original_name||"Foto")}</span><div class="photo-actions"><button type="button" class="mini photo-open" data-photo-index="${i}">Ver grande</button><button type="button" class="mini photo-download" data-photo-index="${i}">Descargar</button><button type="button" class="mini delphoto" data-id="${p.id}" data-path="${esc(p.path)}">Eliminar</button></div></div></div>`);
+  out.push(`<div class="photo"><button type="button" class="photo-preview" data-photo-index="${i}" aria-label="Ver foto ampliada"><img src="${esc(data?.signedUrl||"")}" alt="${esc(p.original_name||"Foto de la máquina")}" loading="lazy"></button><div><span class="sub">${esc(p.original_name||"Foto")}</span><div class="photo-actions"><button type="button" class="mini photo-open" data-photo-index="${i}">Ver grande</button><button type="button" class="mini photo-download" data-photo-index="${i}">Descargar</button><button type="button" class="mini delphoto" data-id="${p.id}" data-path="${esc(p.path)}">Eliminar</button></div></div></div>`);
  }
  $("photos").innerHTML=out.length?out.join(""):"<div class='sub'>Sin fotos cargadas.</div>";
- $("photos").querySelectorAll(".photo-preview,.photo-open").forEach(button=>button.onclick=()=>openOrderPhoto(ps[Number(button.dataset.photoIndex)]));
- $("photos").querySelectorAll(".photo-download").forEach(button=>button.onclick=()=>downloadOrderPhoto(ps[Number(button.dataset.photoIndex)],button));
- $("photos").querySelectorAll(".delphoto").forEach(button=>button.onclick=()=>deletePhoto(+button.dataset.id,button.dataset.path));
+ $("photos").querySelectorAll(".photo-preview,.photo-open").forEach(b=>b.onclick=()=>openOrderPhoto(ps,Number(b.dataset.photoIndex)));
+ $("photos").querySelectorAll(".photo-download").forEach(b=>b.onclick=()=>downloadOrderPhoto(ps[Number(b.dataset.photoIndex)],b));
+ $("photos").querySelectorAll(".delphoto").forEach(b=>b.onclick=()=>deletePhoto(+b.dataset.id,b.dataset.path));
 }
-let activePhotoObjectUrl=null;
+let photoGallery=null;
 function closeOrderPhoto(){
- const viewer=document.getElementById("orderPhotoViewer");
- if(viewer)viewer.remove();
- if(activePhotoObjectUrl){URL.revokeObjectURL(activePhotoObjectUrl);activePhotoObjectUrl=null}
- document.removeEventListener("keydown",orderPhotoEscape);
+ const g=photoGallery;photoGallery=null;
+ document.removeEventListener("keydown",orderPhotoKeys);
+ if(!g)return;
+ g.requestId++;
+ g.viewer.remove();
+ if(g.url)URL.revokeObjectURL(g.url);
 }
-function orderPhotoEscape(event){if(event.key==="Escape")closeOrderPhoto()}
-async function openOrderPhoto(photo){
- if(!photo)return;
+function orderPhotoKeys(event){
+ const g=photoGallery;if(!g)return;
+ if(event.key==="Escape"){event.preventDefault();closeOrderPhoto()}
+ else if(event.key==="ArrowRight"){event.preventDefault();showOrderPhoto(g.index+1)}
+ else if(event.key==="ArrowLeft"){event.preventDefault();showOrderPhoto(g.index-1)}
+}
+function setOrderPhotoZoom(g,value){
+ if(photoGallery!==g)return;
+ g.zoom=Math.max(1,Math.min(6,value));
+ const img=g.stage.querySelector("img");if(img)img.style.transform=`scale(${g.zoom})`;
+}
+async function showOrderPhoto(index){
+ const g=photoGallery;if(!g||!g.photos.length)return;
+ g.index=(index+g.photos.length)%g.photos.length;
+ g.requestId++;const requestId=g.requestId;
+ const photo=g.photos[g.index];
+ g.zoom=1;
+ g.viewer.querySelector(".order-photo-title").textContent=photo.original_name||"Foto de la máquina";
+ g.viewer.querySelector(".order-photo-counter").textContent=`${g.index+1} / ${g.photos.length}`;
+ g.stage.querySelector(".order-photo-image-slot").textContent="Cargando foto…";
+ const previousUrl=g.url;g.url=null;
+ if(previousUrl)URL.revokeObjectURL(previousUrl);
+ const {data,error}=await supabase.storage.from("order-photos").download(photo.path);
+ if(photoGallery!==g||requestId!==g.requestId)return;
+ const slot=g.stage.querySelector(".order-photo-image-slot");
+ if(error||!data){slot.textContent="No se pudo abrir esta foto.";return}
+ const url=URL.createObjectURL(data);g.url=url;
+ const img=document.createElement("img");img.src=url;img.alt=photo.original_name||"Foto";img.draggable=false;
+ img.addEventListener("dblclick",()=>setOrderPhotoZoom(g,g.zoom===1?2.5:1));
+ slot.replaceChildren(img);
+}
+function openOrderPhoto(photos,index){
+ if(!photos?.length)return;
  closeOrderPhoto();
  const viewer=document.createElement("div");viewer.id="orderPhotoViewer";viewer.className="order-photo-viewer";
- viewer.innerHTML=`<div class="order-photo-toolbar"><strong class="order-photo-title"></strong><div class="order-photo-buttons"><button type="button" data-photo-action="minus" aria-label="Alejar">−</button><button type="button" data-photo-action="plus" aria-label="Acercar">+</button><button type="button" data-photo-action="reset">Ajustar</button><button type="button" data-photo-action="download">Descargar original</button><button type="button" data-photo-action="close" aria-label="Cerrar foto">✕</button></div></div><div class="order-photo-stage"><p>Cargando foto…</p></div>`;
- viewer.querySelector(".order-photo-title").textContent=photo.original_name||"Foto de la máquina";
+ viewer.innerHTML=`<div class="order-photo-toolbar"><strong class="order-photo-title"></strong><span class="order-photo-counter"></span><div class="order-photo-buttons"><button type="button" data-photo-action="minus" aria-label="Alejar">−</button><button type="button" data-photo-action="plus" aria-label="Acercar">+</button><button type="button" data-photo-action="reset">Ajustar</button><button type="button" data-photo-action="download">Descargar original</button><button type="button" data-photo-action="close" aria-label="Cerrar">✕</button></div></div><div class="order-photo-stage"><div class="order-photo-image-slot"></div><button type="button" class="order-photo-arrow order-photo-prev" aria-label="Foto anterior">‹</button><button type="button" class="order-photo-arrow order-photo-next" aria-label="Foto siguiente">›</button></div>`;
  document.body.appendChild(viewer);
- document.addEventListener("keydown",orderPhotoEscape);
- const stage=viewer.querySelector(".order-photo-stage");
- let zoom=1;
- const applyZoom=()=>{const img=stage.querySelector("img");if(img)img.style.transform=`scale(${zoom})`};
- const setZoom=value=>{zoom=Math.max(1,Math.min(6,value));applyZoom()};
+ const g={viewer,photos,index:0,zoom:1,url:null,requestId:0,stage:viewer.querySelector(".order-photo-stage")};
+ photoGallery=g;
+ document.addEventListener("keydown",orderPhotoKeys);
  viewer.querySelector('[data-photo-action="close"]').onclick=closeOrderPhoto;
- viewer.querySelector('[data-photo-action="minus"]').onclick=()=>setZoom(zoom/1.4);
- viewer.querySelector('[data-photo-action="plus"]').onclick=()=>setZoom(zoom*1.4);
- viewer.querySelector('[data-photo-action="reset"]').onclick=()=>setZoom(1);
- viewer.querySelector('[data-photo-action="download"]').onclick=e=>downloadOrderPhoto(photo,e.currentTarget);
+ viewer.querySelector('[data-photo-action="minus"]').onclick=()=>setOrderPhotoZoom(g,g.zoom/1.4);
+ viewer.querySelector('[data-photo-action="plus"]').onclick=()=>setOrderPhotoZoom(g,g.zoom*1.4);
+ viewer.querySelector('[data-photo-action="reset"]').onclick=()=>setOrderPhotoZoom(g,1);
+ viewer.querySelector('[data-photo-action="download"]').onclick=e=>downloadOrderPhoto(g.photos[g.index],e.currentTarget);
+ viewer.querySelector(".order-photo-prev").onclick=()=>showOrderPhoto(g.index-1);
+ viewer.querySelector(".order-photo-next").onclick=()=>showOrderPhoto(g.index+1);
+ const arrows=viewer.querySelectorAll(".order-photo-arrow");
+ arrows.forEach(b=>b.hidden=photos.length<2);
  viewer.addEventListener("click",e=>{if(e.target===viewer)closeOrderPhoto()});
- stage.addEventListener("wheel",e=>{if(!stage.querySelector("img"))return;e.preventDefault();setZoom(zoom*(e.deltaY<0?1.15:1/1.15))},{passive:false});
- let pinchStart=0,pinchZoom=1;
- stage.addEventListener("touchstart",e=>{if(e.touches.length===2){pinchStart=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);pinchZoom=zoom}},{passive:true});
- stage.addEventListener("touchmove",e=>{if(e.touches.length===2&&pinchStart){e.preventDefault();const distance=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);setZoom(pinchZoom*distance/pinchStart)}},{passive:false});
- stage.addEventListener("touchend",()=>{pinchStart=0},{passive:true});
- const {data,error}=await supabase.storage.from("order-photos").download(photo.path);
- if(!viewer.isConnected)return;
- if(error||!data){stage.textContent="No se pudo abrir la foto. Intentá nuevamente.";return}
- activePhotoObjectUrl=URL.createObjectURL(data);
- stage.innerHTML="";
- const img=document.createElement("img");img.src=activePhotoObjectUrl;img.alt=photo.original_name||"Foto";img.draggable=false;
- img.addEventListener("dblclick",()=>setZoom(zoom===1?2.5:1));
- stage.appendChild(img);
+ g.stage.addEventListener("wheel",e=>{if(!g.stage.querySelector("img"))return;e.preventDefault();setOrderPhotoZoom(g,g.zoom*(e.deltaY<0?1.15:1/1.15))},{passive:false});
+ let startX=0,startY=0,pinchStart=0,pinchZoom=1,isPinching=false;
+ g.stage.addEventListener("touchstart",e=>{
+  if(e.touches.length===2){pinchStart=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);pinchZoom=g.zoom;isPinching=true}
+  else if(e.touches.length===1){startX=e.touches[0].clientX;startY=e.touches[0].clientY;isPinching=false}
+ },{passive:true});
+ g.stage.addEventListener("touchmove",e=>{
+  if(e.touches.length===2&&pinchStart){e.preventDefault();const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);setOrderPhotoZoom(g,pinchZoom*d/pinchStart)}
+ },{passive:false});
+ g.stage.addEventListener("touchend",e=>{
+  if(e.touches.length===0&&!isPinching&&g.zoom===1&&photos.length>1&&e.changedTouches.length){
+   const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
+   if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.4)showOrderPhoto(g.index+(dx<0?1:-1));
+  }
+  if(e.touches.length<2)pinchStart=0;
+  if(!e.touches.length)isPinching=false;
+ },{passive:true});
+ showOrderPhoto(index);
 }
 async function downloadOrderPhoto(photo,button){
  if(!photo)return;
