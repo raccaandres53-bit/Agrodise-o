@@ -13,7 +13,7 @@ const areas=[
 
 function injectCss(){
  if(document.querySelector('link[href*="aprendizaje.css"]'))return;
- const link=document.createElement('link');link.rel='stylesheet';link.href='./aprendizaje.css?v=20261124-1700';document.head.appendChild(link);
+ const link=document.createElement('link');link.rel='stylesheet';link.href='./aprendizaje.css?v=20261124-1725';document.head.appendChild(link);
 }
 function build(){
  if($('learningApp'))return;
