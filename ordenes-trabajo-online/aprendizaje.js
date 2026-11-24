@@ -137,34 +137,69 @@ const panelQuiz=[
  {q:'¿Qué control ejecuta la rutina cargada?',a:'F8',why:'F8: CORTAR ejecuta la rutina; puede producir movimiento o corte en el equipo real.'},
  {q:'¿Qué función está asociada a retroceder por la trayectoria?',a:'R',why:'R: RETROCEDE corresponde a la recuperación de trayectoria descrita en el manual.'}
 ];
+const fieldKeys=[['ARCHIVO','Nº de programa','#dce3ed'],['BLQ ACT','Bloque actual','#dce3ed'],['BLQ INICIAL','Inicio','#dce3ed'],['BLQ FIN','Fin','#dce3ed'],['PIEZA','Coordenadas','#a5dfe6'],['MAQUINA','Coordenadas','#a9b8d8'],['VEL CORTE','Velocidad','#a9b8d8'],['VEL RAPIDA','Desplazamiento','#a9b8d8'],['SANGRIA','Compensación','#a9b8d8'],['ACEL','Aceleración','#a9b8d8'],['PERF PLASMA','Tiempo restante','#a9b8d8'],['MENSAJE','Información','#dce3ed']];
+const fieldQuiz=[
+{q:'¿Dónde se identifica el número del programa cargado?',a:'ARCHIVO',why:'Archivo Nº identifica el programa (pág. 3).'},
+{q:'¿Qué campo muestra la instrucción que está ejecutando el CNC?',a:'BLQ ACT',why:'BLQ ACT indica el bloque actual (pág. 3).'},
+{q:'¿Qué campo identifica el límite de inicio de un tramo del programa?',a:'BLQ INICIAL',why:'BLQ INICIAL delimita el comienzo (pág. 3). No modificar sin autorización.'},
+{q:'¿Qué campo identifica el límite final de un tramo del programa?',a:'BLQ FIN',why:'BLQ FIN delimita el final (pág. 3).'},
+{q:'¿Qué cuadro muestra la posición relativa al cero de la pieza?',a:'PIEZA',why:'El cuadro PIEZA muestra las coordenadas relativas al cero de pieza (pág. 2).'},
+{q:'¿Qué cuadro muestra la posición respecto al origen de máquina?',a:'MAQUINA',why:'El cuadro MAQUINA muestra la posición respecto al cero máquina (pág. 2).'},
+{q:'¿Qué campo corresponde a la velocidad durante el corte?',a:'VEL CORTE',why:'VEL CORTE es la velocidad de trabajo (pág. 5).'},
+{q:'¿Qué campo corresponde a la velocidad de desplazamiento rápido?',a:'VEL RAPIDA',why:'VEL RAPIDA corresponde al desplazamiento (pág. 5).'},
+{q:'¿Qué campo compensa el ancho del corte?',a:'SANGRIA',why:'SANGRIA compensa el material retirado (pág. 5).'},
+{q:'¿Qué campo determina cómo se alcanza la velocidad programada?',a:'ACEL',why:'ACEL representa la aceleración (pág. 5).'},
+{q:'¿Dónde aparece el tiempo de perforado restante del plasma?',a:'PERF PLASMA',why:'Perf. Plasma muestra ese tiempo (pág. 6).'},
+{q:'¿En qué cuadro puede aparecer el nombre de la pieza?',a:'MENSAJE',why:'El manual indica que Mensaje puede mostrar el nombre de la pieza (pág. 3).'}
+];
+const scenarioQuiz=[
+{q:'Llegás al pantógrafo y no sabés dónde está definido el cero. ¿Qué hacés?',opts:['Iniciar el trabajo','Solicitar al responsable que verifique el cero','Cambiar los parámetros'],a:1,why:'La ubicación del cero debe verificarse antes de operar. No inicies un movimiento sin autorización.'},
+{q:'La pieza en pantalla no coincide con el trabajo solicitado. ¿Cómo actuás?',opts:['Continuar con el archivo actual','Modificar la sangría','Detener la preparación y verificar el programa con el responsable'],a:2,why:'Antes de operar se debe comprobar que el archivo corresponde al trabajo.'},
+{q:'Necesitás observar el recorrido sin mover el pantógrafo. ¿Qué función corresponde?',opts:['F9 SIMULAR','F8 CORTAR','HOME'],a:0,why:'F9 simula a nivel gráfico (pág. 4).'},
+{q:'Encontrás valores de velocidad y perforado en una captura del manual. ¿Qué hacés?',opts:['Copiarlos para cualquier chapa','Consultar la configuración validada del trabajo','Aumentarlos hasta que corte'],a:1,why:'Las capturas muestran ejemplos; los parámetros dependen del equipo y del proceso.'},
+{q:'Durante una práctica observás una pérdida de corte. ¿Qué corresponde a un principiante?',opts:['Intentar recuperar el corte sin ayuda','Modificar el cero','Avisar al operador responsable y seguir el procedimiento autorizado'],a:2,why:'La recuperación exige capacitación y un procedimiento autorizado.'},
+{q:'Una pieza sale fuera de medida. ¿Cuál es la respuesta apropiada?',opts:['Informar y verificar medidas con el responsable','Cambiar la sangría sin consultar','Aumentar la velocidad'],a:0,why:'La sangría afecta la medida (pág. 5), pero no debe modificarse sin validar la causa.'}
+];
+let activeQuestions=[],isRetry=false;
+function startPractice(mode,subset=null){
+ quizMode=mode;quizIndex=0;quizAnswers={};isRetry=!!subset;
+ activeQuestions=subset||[...(mode==='panel'?panelQuiz:mode==='fields'?fieldQuiz:mode==='scenario'?scenarioQuiz:plasmaQuiz)];
+ for(let i=activeQuestions.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[activeQuestions[i],activeQuestions[j]]=[activeQuestions[j],activeQuestions[i]]}
+ renderQuizQuestion();
+}
 let quizMode='panel';
 function openQuiz(){
  quizIndex=0;quizAnswers={};$('learningAreaPage').hidden=true;$('learningLessonPage').hidden=true;$('learningQuizPage').hidden=false;
  $('quizStepCount').textContent='ELEGÍ EL TIPO DE REPASO';
- $('learningQuizContent').innerHTML='<article class="learning-simple-step"><h2>¿Cómo querés practicar?</h2><p>Identificá los controles del CNC en una botonera virtual o repasá los conceptos del manual.</p><div style="display:grid;gap:12px;margin-top:20px"><button type="button" class="learning-topic-action" id="quizPanelMode">Practicar con la botonera →</button><button type="button" class="learning-topic-action" id="quizTheoryMode">Preguntas teóricas →</button></div><p style="margin-top:18px">La práctica es únicamente una simulación educativa, sin conexión a la máquina.</p></article>';
+ $('learningQuizContent').innerHTML='<article class="learning-simple-step"><h2>¿Cómo querés practicar?</h2><p>Identificá los controles del CNC en una botonera virtual o repasá los conceptos del manual.</p><div style="display:grid;gap:12px;margin-top:20px"><button type="button" class="learning-topic-action" id="quizPanelMode">Practicar con la botonera →</button><button type="button" class="learning-topic-action" id="quizFieldsMode">Reconocer campos del CNC · 12 preguntas →</button><button type="button" class="learning-topic-action" id="quizScenarioMode">Situaciones de taller · 6 casos →</button><button type="button" class="learning-topic-action" id="quizTheoryMode">Preguntas teóricas →</button></div><p style="margin-top:18px">La práctica es únicamente una simulación educativa, sin conexión a la máquina.</p></article>';
  $('learningQuizActions').innerHTML='';
- $('quizPanelMode').onclick=()=>{quizMode='panel';renderQuizQuestion()};
- $('quizTheoryMode').onclick=()=>{quizMode='theory';renderQuizQuestion()};
+ $('quizPanelMode').onclick=()=>startPractice('panel');
+ $('quizFieldsMode').onclick=()=>startPractice('fields');
+ $('quizScenarioMode').onclick=()=>startPractice('scenario');
+ $('quizTheoryMode').onclick=()=>startPractice('theory');
 }
 function renderQuizQuestion(){
- const qs=quizMode==='panel'?panelQuiz:plasmaQuiz,q=qs[quizIndex],chosen=quizAnswers[quizIndex],answered=chosen!==undefined;
+ const qs=activeQuestions,q=qs[quizIndex],chosen=quizAnswers[quizIndex],answered=chosen!==undefined;
  $('quizStepCount').textContent='PREGUNTA '+(quizIndex+1)+' DE '+qs.length;
- const keys=quizMode==='panel'?panelKeys:q.opts.map((o,i)=>[i,o,'#dce3ed']);
+ const visualMode=quizMode==='panel'||quizMode==='fields';
+ const keys=quizMode==='panel'?panelKeys:quizMode==='fields'?fieldKeys:q.opts.map((o,i)=>[i,o,'#dce3ed']);
  const keypad=keys.map(([id,label,color])=>{
  const correct=answered&&id===q.a,wrong=answered&&id===chosen&&id!==q.a;
- return `<button type="button" data-answer="${id}" ${answered?'disabled':''} style="min-height:64px; padding:10px 6px; border-radius:8px; border:3px solid ${correct?'#16a34a':wrong?'#ef4444':'#5a6472'}; background:${color}; color:${['#c93636','#298b4c'].includes(color)?'#fff':'#111827'}; font:inherit; font-weight:750; box-shadow:0 3px 0 #374151; cursor:${answered?'default':'pointer'}; opacity:${answered&&!correct&&!wrong ? 0.6 : 1}; overflow-wrap:anywhere;">${quizMode==='panel'?'<span style="display:block;font-size:1.2em">'+id+'</span>':''}<span style="display:block;font-size:.86em">${label}</span>${correct?' ✓':wrong?' ✗':''}</button>`;
+ return `<button type="button" data-answer="${id}" ${answered?'disabled':''} style="min-height:64px; padding:10px 6px; border-radius:8px; border:3px solid ${correct?'#16a34a':wrong?'#ef4444':'#5a6472'}; background:${color}; color:${['#c93636','#298b4c'].includes(color)?'#fff':'#111827'}; font:inherit; font-weight:750; box-shadow:0 3px 0 #374151; cursor:${answered?'default':'pointer'}; opacity:${answered&&!correct&&!wrong ? 0.6 : 1}; overflow-wrap:anywhere;">${visualMode?'<span style="display:block;font-size:1.2em">'+id+'</span>':''}<span style="display:block;font-size:.86em">${label}</span>${correct?' ✓':wrong?' ✗':''}</button>`;
  }).join('');
- $('learningQuizContent').innerHTML=`<article class="learning-simple-step learning-quiz-simple"><div class="learning-simple-step-label">${quizMode==='panel'?'SIMULADOR · CNC MASTER XP':'PREGUNTA '+(quizIndex+1)}</div><h2>${q.q}</h2>${quizMode==='panel'?'<p>Seleccioná el control en la botonera. No acciona ninguna máquina.</p>':''}<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;background:#202833;padding:14px;border-radius:12px;margin:18px 0;">${keypad}</div></article>`;
- $('learningQuizContent').querySelectorAll('[data-answer]').forEach(el=>el.onclick=()=>{if(answered)return;quizAnswers[quizIndex]=quizMode==='panel'?el.dataset.answer:Number(el.dataset.answer);renderQuizQuestion()});
+ $('learningQuizContent').innerHTML=`<article class="learning-simple-step learning-quiz-simple"><div class="learning-simple-step-label">${visualMode?'SIMULADOR · CNC MASTER XP':'PREGUNTA '+(quizIndex+1)}</div><div role="progressbar" aria-valuenow="${quizIndex+1}" aria-valuemin="0" aria-valuemax="${qs.length}" style="height:7px;border-radius:8px;background:#dce3ed;overflow:hidden;margin:12px 0"><div style="height:100%;background:#dc2626;width:${(quizIndex+1)/qs.length*100}%"></div></div><h2>${q.q}</h2>${visualMode?'<p>Seleccioná el control en la botonera. No acciona ninguna máquina.</p>':''}<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;background:#202833;padding:14px;border-radius:12px;margin:18px 0;">${keypad}</div></article>`;
+ $('learningQuizContent').querySelectorAll('[data-answer]').forEach(el=>el.onclick=()=>{if(answered)return;quizAnswers[quizIndex]=visualMode?el.dataset.answer:Number(el.dataset.answer);renderQuizQuestion()});
  const correct=chosen===q.a;
  $('learningQuizActions').innerHTML=!answered?'<span class="learning-quiz-hint">Pulsá una opción para responder.</span>':`<div class="learning-quiz-explain ${correct?'is-correct':'is-review'}" role="status"><b>${correct?'¡Muy bien!':'Vamos a repasarlo'}</b><p>${q.why}</p></div><button type="button" class="learning-topic-action learning-next-step" id="learningQuizNext">${quizIndex===qs.length-1?'Ver resultado':'Siguiente pregunta →'}</button>`;
  $('learningQuizNext')?.addEventListener('click',()=>{
   if(quizIndex<qs.length-1){quizIndex++;renderQuizQuestion()}
   else{
    const score=qs.reduce((n,item,i)=>n+(quizAnswers[i]===item.a?1:0),0);
+   const errors=qs.filter((item,i)=>quizAnswers[i]!==item.a);
    $('quizStepCount').textContent='RESULTADO FINAL';
-   $('learningQuizContent').innerHTML=`<div class="learning-quiz-final"><h2>Terminaste el repaso</h2><strong>${score} de ${qs.length}</strong><p>${Math.round(score/qs.length*100)}% de aciertos</p><p>Este resultado no reemplaza la capacitación práctica autorizada.</p></div>`;
+   $('learningQuizContent').innerHTML=`<div class="learning-quiz-final"><h2>Terminaste el repaso</h2><strong>${score} de ${qs.length}</strong><p>${Math.round(score/qs.length*100)}% de aciertos</p><p>Este resultado no reemplaza la capacitación práctica autorizada.</p></div>${errors.length?'<article class="learning-simple-step"><h2>Temas para repasar</h2>'+errors.map(e=>'<div style="padding:12px 0;border-bottom:1px solid #dce3ed"><b>'+e.q+'</b><p>'+e.why+'</p></div>').join('')+'</article>':''}`;
    $('learningQuizActions').innerHTML='<button type="button" class="learning-topic-action learning-next-step" id="learningQuizRetry">Volver a practicar</button><button type="button" class="learning-back-step" id="learningQuizReturn">Volver al recorrido</button>';
+   if(errors.length){$('learningQuizActions').insertAdjacentHTML('afterbegin','<button type="button" class="learning-topic-action" id="quizRetryErrors">Practicar solamente mis errores →</button>');$('quizRetryErrors').onclick=()=>startPractice(quizMode,errors);}
    $('learningQuizRetry').onclick=openQuiz;$('learningQuizReturn').onclick=showTopics;
   }
  });
