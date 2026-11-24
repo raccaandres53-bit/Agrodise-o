@@ -95,3 +95,10 @@
  .learning-guided-actions{position:sticky;bottom:0;background:#10141c;padding:12px 0 calc(12px + env(safe-area-inset-bottom));z-index:2}
  .learning-back-step,.learning-next-step{flex:1;text-align:center}
 }
+
+
+/* Referencias visuales de la capacitación CNC MASTER XP */
+.learning-step-visual{margin:20px 0 0;border:1px solid #ffffff24;border-radius:13px;overflow:hidden;background:#0c1119}
+.learning-step-visual img{display:block;width:100%;height:auto;object-fit:contain;background:#0c1119}
+.learning-step-visual figcaption{padding:10px 14px;color:#aeb8c8;background:#111824;font-size:12px;line-height:1.5}
+@media(max-width:700px){.learning-step-visual{margin-top:16px}.learning-step-visual figcaption{font-size:11px;padding:9px 11px}}
