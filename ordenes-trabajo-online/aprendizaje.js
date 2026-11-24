@@ -1,7 +1,7 @@
 import { sb } from './supabase-client.js';
 
 const $=id=>document.getElementById(id);
-let allowed=false;
+let allowed=false,canKnowledge=false;
 
 const areas=[
  {id:'plasma',icon:'🔥',name:'Corte plasma',desc:'PCROB, preparación, corte y seguridad',topics:[['Simulador PCROB','Recreación interactiva del panel de control para practicar sin accionar la máquina.','En desarrollo'],['Preparación de máquina','Inspección previa, consumibles, referencias y puesta a punto.','Contenido por documentar'],['Programación y corte','Carga de archivos, trayectorias y parámetros de trabajo.','Contenido por documentar'],['Seguridad operativa','Riesgos, EPP, controles y respuesta ante incidentes.','Contenido por documentar']]},
@@ -54,7 +54,7 @@ function openArea(id){
  const area=areas.find(x=>x.id===id);if(!area)return;
  $('learningIndex').hidden=true;$('learningAreaPage').hidden=false;
  $('learningAreaTitle').textContent=area.name;$('learningAreaDesc').textContent=area.desc;
- $('learningTopics').innerHTML=area.topics.map((t,i)=>`<article class="learning-topic-card"><div class="learning-topic-top"><span class="learning-topic-number">${String(i+1).padStart(2,'0')}</span><span class="learning-topic-status ${t[2]==='Abrir módulo'?'is-ready':''}">${t[2]}</span></div><h2>${t[0]}</h2><p>${t[1]}</p>${t[2]==='Abrir módulo'?'<button type="button" class="learning-topic-action" id="learningOpenKnowledge">Abrir Conocimiento 3D →</button>':'<span class="learning-topic-note">Material de capacitación a incorporar</span>'}</article>`).join('');
+ $('learningTopics').innerHTML=area.topics.map((t,i)=>`<article class="learning-topic-card"><div class="learning-topic-top"><span class="learning-topic-number">${String(i+1).padStart(2,'0')}</span><span class="learning-topic-status ${t[2]==='Abrir módulo'&&canKnowledge?'is-ready':''}">${t[2]==='Abrir módulo'&&!canKnowledge?'Permiso adicional':t[2]}</span></div><h2>${t[0]}</h2><p>${t[1]}</p>${t[2]==='Abrir módulo'&&canKnowledge?'<button type="button" class="learning-topic-action" id="learningOpenKnowledge">Abrir Conocimiento 3D →</button>':`<span class="learning-topic-note">${t[2]==='Abrir módulo'?'Disponible para usuarios con permiso de Conocimiento.':'Material de capacitación a incorporar'}</span>`}</article>`).join('');
  $('learningOpenKnowledge')?.addEventListener('click',()=>{
   $('learningApp').classList.remove('show');
   $('modulePicker')?.classList.remove('hidden');
@@ -83,11 +83,12 @@ async function checkAccess(){
  const {data:{session}}=await sb.auth.getSession();
  const email=session?.user?.email?.trim().toLowerCase();
  if(!email)return false;
- const {data,error}=await sb.from('allowed_users').select('can_conocimiento').eq('email',email).maybeSingle();
- return !error&&!!data?.can_conocimiento;
+ const {data,error}=await sb.from('allowed_users').select('can_taller,can_conocimiento').eq('email',email).maybeSingle();
+ if(error||!data)return {learning:false,knowledge:false};
+ return {learning:!!data.can_taller||!!data.can_conocimiento,knowledge:!!data.can_conocimiento};
 }
 async function boot(){
- allowed=await checkAccess();
+ const access=await checkAccess();allowed=access.learning;canKnowledge=access.knowledge;
  if(!allowed)return;
  if(addLauncher())return;
  const observer=new MutationObserver(()=>{
@@ -99,7 +100,7 @@ async function boot(){
 }
 boot();
 sb.auth.onAuthStateChange(async()=>{
- allowed=await checkAccess();
+ const access=await checkAccess();allowed=access.learning;canKnowledge=access.knowledge;
  if(!allowed){$('goLearning')?.remove();$('learningApp')?.classList.remove('show');return}
  addLauncher();
 });
