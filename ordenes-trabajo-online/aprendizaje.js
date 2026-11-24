@@ -12,7 +12,7 @@ const areas=[
 
 function injectCss(){
  if(document.querySelector('link[href*="aprendizaje.css"]'))return;
- const link=document.createElement('link');link.rel='stylesheet';link.href='./aprendizaje.css?v=20261124-1625';document.head.appendChild(link);
+ const link=document.createElement('link');link.rel='stylesheet';link.href='./aprendizaje.css?v=20261124-1640';document.head.appendChild(link);
 }
 function build(){
  if($('learningApp'))return;
@@ -82,7 +82,7 @@ function addLauncher(){
 async function checkAccess(){
  const {data:{session}}=await sb.auth.getSession();
  const email=session?.user?.email?.trim().toLowerCase();
- if(!email)return false;
+ if(!email)return {learning:false,knowledge:false};
  const {data,error}=await sb.from('allowed_users').select('can_taller,can_conocimiento').eq('email',email).maybeSingle();
  if(error||!data)return {learning:false,knowledge:false};
  return {learning:!!data.can_taller||!!data.can_conocimiento,knowledge:!!data.can_conocimiento};
