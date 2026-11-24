@@ -1,6 +1,6 @@
 import { sb } from './supabase-client.js';
 import { plasmaPath, plasmaQuiz } from './aprendizaje-plasma.js';
-import { getPlasmaVisual } from './aprendizaje-visuales.js';
+import { getPlasmaVisual } from './aprendizaje-visuales.js?v=20261124-visual2';
 
 const $=id=>document.getElementById(id);
 let allowed=false,canKnowledge=false,currentArea=null,currentMission=null,currentStep=0;
@@ -15,7 +15,7 @@ const areas=[
 
 function injectCss(){
  if(document.querySelector('link[href*="aprendizaje.css"]'))return;
- const link=document.createElement('link');link.rel='stylesheet';link.href='./aprendizaje.css?v=20261124-visual1';document.head.appendChild(link);
+ const link=document.createElement('link');link.rel='stylesheet';link.href='./aprendizaje.css?v=20261124-visual2';document.head.appendChild(link);
 }
 function build(){
  if($('learningApp'))return;
