@@ -49,3 +49,38 @@ export const plasmaQuiz=[
 {q:'En un equipo con control mecánico-neumático, ¿qué tiempos se deben ajustar?',opts:['Solo velocidad de simulación','Descenso del Roller y perforación del plasma','Solo velocidad rápida'],a:1,why:'Así lo especifica el apartado de plasma de la página 13.'},
 {q:'¿Qué sucede si se ejecuta una rutina sin ningún pico activo?',opts:['El pantógrafo recorre el contorno sin cortar','Se activa automáticamente el plasma','Se borra el programa'],a:0,why:'El manual describe ese comportamiento para el pulsador F8:CORTAR.'}
 ];
+
+
+// Recorrido guiado para personas que empiezan desde cero.
+// Los conceptos y funciones se mantienen fieles al manual CNC MASTER XP.
+export const plasmaPath=[
+{id:'pantalla',title:'Conocé la pantalla',subtitle:'Primero vamos a reconocer qué estás viendo.',icon:'👀',steps:[
+{title:'Esta es la pantalla de trabajo',body:'Acá vas a ver el dibujo de la pieza que se va a cortar y los datos que usa el pantógrafo para moverse. No hace falta entender todo de una vez: primero reconocé el área donde aparece el dibujo.',key:'Área gráfica',tip:'Antes de tocar algo, mirá qué pieza o trabajo aparece dibujado.'},
+{title:'Hay dos posiciones importantes',body:'Cero Máquina es el punto de origen del pantógrafo. Cero Pieza es el punto que se toma como inicio para ubicar el trabajo. El manual indica que normalmente coinciden, salvo que se haya movido el cero de la pieza.',key:'Cero Máquina / Cero Pieza',tip:'Si no sabés dónde está ubicado el cero, no inicies un corte: pedile al responsable que lo verifique.'},
+{title:'¿Para qué sirven HOME y DEFINIR CERO?',body:'HOME lleva el equipo al origen de máquina. DEFINIR CERO pone en cero las coordenadas de máquina y pieza para establecer dónde se quiere comenzar el corte.',key:'HOME · DEFINIR CERO',tip:'Son funciones distintas. No las uses por prueba: primero aprendé con el operador responsable cuándo corresponde cada una.'}
+]},
+{id:'archivos',title:'Abrí el trabajo',subtitle:'Ahora vamos a reconocer cómo se carga la pieza que se va a cortar.',icon:'📂',steps:[
+{title:'Elegí el archivo del trabajo',body:'En Archivo Nº se ingresa el número del programa. Al cargarlo, el dibujo de la pieza o del conjunto de piezas aparece en el área gráfica.',key:'Archivo Nº',tip:'Antes de seguir, compará el dibujo de la pantalla con el trabajo que te entregaron.'},
+{title:'¿Qué son los bloques?',body:'El programa está formado por instrucciones. El CNC las muestra como bloques. BLQ ACT indica cuál está ejecutando en ese momento.',key:'BLQ ACT',tip:'No necesitás editar bloques para empezar. Por ahora, solo reconocé dónde se muestra el bloque actual.'},
+{title:'¿Desde dónde hasta dónde trabaja?',body:'BLQ INICIAL y BLQ FIN permiten indicar desde qué bloque comenzar y en cuál detenerse. El manual muestra como ejemplo ejecutar desde el bloque 27 hasta el 42.',key:'BLQ INICIAL · BLQ FIN',tip:'No cambies estos números sin indicación del responsable. Un límite incorrecto puede dejar el trabajo incompleto.'}
+]},
+{id:'simular',title:'Probá el recorrido sin cortar',subtitle:'Este es el paso para mirar el trabajo antes de hacer un corte.',icon:'▶️',steps:[
+{title:'Primero, mirá el recorrido',body:'F9 · SIMULAR reproduce el recorrido en la pantalla, a nivel gráfico. Sirve para observar por dónde va a pasar el pantógrafo sin cortar la chapa.',key:'F9 · SIMULAR',tip:'Usá la simulación para revisar que el recorrido corresponda al dibujo y al trabajo preparado.'},
+{title:'F7 vuelve a cargar el dibujo',body:'F7 · CARGAR vuelve a cargar la figura o el nesting. El manual indica que también sirve para visualizar la pieza después de rotarla o espejarla.',key:'F7 · CARGAR',tip:'Si el dibujo cambió por una rotación o un espejo, volvé a cargarlo y revisalo antes de continuar.'}
+]},
+{id:'plasma',title:'Prepará el plasma',subtitle:'Vamos a reconocer qué cambia cuando se trabaja con plasma.',icon:'🔥',steps:[
+{title:'Seleccioná el modo plasma',body:'El botón PLS activa o desactiva el corte plasma. Al activarlo, se desmarcan los picos de oxicorte, según explica el manual.',key:'PLS',tip:'Antes de seleccionar el proceso, confirmá con el responsable qué trabajo y qué equipo están preparados.'},
+{title:'¿Qué significa Perf. Plasma?',body:'Es el tiempo que el plasma necesita para perforar la chapa antes de continuar el recorrido. El manual indica que se ajusta desde la pantalla Parámetros.',key:'Perf. Plasma',tip:'El tiempo correcto depende de la configuración del equipo y del trabajo. No copies valores de una captura del manual.'},
+{title:'La altura puede controlarse de dos maneras',body:'El manual diferencia equipos con sensor electrónico de altura y equipos con control mecánico-neumático. En el primero indica tener activo Arco transferido; en el segundo, ajustar el descenso del Roller y el tiempo de perforación.',key:'Control electrónico / mecánico-neumático',tip:'Primero averiguá qué sistema tiene instalado nuestro pantógrafo. No cambies estos ajustes sin autorización.'}
+]},
+{id:'operar',title:'Empezá y detené el trabajo',subtitle:'Conocé los controles. La operación real requiere autorización.',icon:'🛠️',steps:[
+{title:'F8 inicia el corte',body:'F8 · CORTAR ejecuta la rutina cargada. El manual indica que, si la torcha de plasma está activada, el pantógrafo realiza el corte. Si no hay un pico activo, recorre el contorno sin cortar la chapa.',key:'F8 · CORTAR',tip:'No presiones F8 para practicar. Solo debe hacerlo una persona capacitada, después de revisar el programa, el cero y la preparación de la máquina.'},
+{title:'F11 pausa o continúa',body:'F11 permite pausar o continuar la rutina. El manual indica que tiene la misma función que el hongo negro del tablero.',key:'F11',tip:'Identificá este control antes de operar. En una situación real, seguí el procedimiento de seguridad del taller.'},
+{title:'F10 aborta la secuencia',body:'F10 permite abortar la secuencia. El manual también describe R:Retrocede y F12:BQ A BQ para situaciones específicas de recuperación o revisión del recorrido.',key:'F10 · R · F12',tip:'No intentes recuperar un corte por tu cuenta. Avisá al responsable y seguí el procedimiento establecido.'}
+]},
+{id:'ajustes',title:'Ajustes para más adelante',subtitle:'Estos valores existen, pero no son el primer paso para un operador nuevo.',icon:'🎚️',steps:[
+{title:'Velocidad y aceleración',body:'La velocidad de corte se ingresa según el espesor y la potencia de trabajo. La velocidad rápida es el desplazamiento del equipo. La aceleración determina qué tan rápido alcanza la velocidad programada.',key:'Velocidad · Aceleración',tip:'El manual muestra límites y ejemplos, pero no una receta para todos los materiales y espesores. No cambies estos valores sin una configuración validada.'},
+{title:'¿Qué es la sangría?',body:'Es la compensación por el material que se pierde con el ancho del corte. El manual explica que ayuda a corregir la medida final de las piezas y de los agujeros.',key:'Sangría',tip:'La compensación correcta depende del proceso. Si una pieza sale fuera de medida, informalo antes de modificar el parámetro.'},
+{title:'Otras funciones',body:'El control también permite trabajar con curvas pequeñas, rotar o espejar figuras, repetir piezas y configurar la interpretación de códigos G.',key:'Curvas · Repetición · Códigos G',tip:'Son ajustes avanzados. Aprendelos con el responsable de programación, no modificando un trabajo de producción.'}
+]}
+];
