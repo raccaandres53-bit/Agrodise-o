@@ -19,3 +19,24 @@
 /* Tres accesos principales en el selector de módulos */
 #modulePicker .module-cards{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(max-width:700px){#modulePicker .module-cards{grid-template-columns:1fr}}
+
+.learning-lesson-head{max-width:820px;margin:18px auto 28px;text-align:center}
+.learning-lesson-head h1{font-size:clamp(28px,4.5vw,42px);letter-spacing:-1px;margin:10px 0 8px}
+.learning-lesson-head p{color:#aeb6c5;line-height:1.6;margin:0}
+.learning-lesson-content{width:min(850px,100%);margin:0 auto;display:grid;gap:12px}
+.learning-lesson-section{display:grid;grid-template-columns:42px 1fr;gap:15px;padding:20px;border:1px solid #ffffff1b;border-radius:15px;background:linear-gradient(145deg,#191f2a,#141922)}
+.learning-lesson-index{width:34px;height:34px;border-radius:10px;background:#392025;color:#f19ba0;display:grid;place-items:center;font-weight:900;font-size:12px}
+.learning-lesson-section h2{font-size:18px;margin:3px 0 7px}.learning-lesson-section p{color:#c0c7d2;line-height:1.7;margin:0}
+.learning-source-note{border:1px solid #725d32;background:#2b261b;color:#e3d7b8;border-radius:12px;padding:16px;line-height:1.6;font-size:13px;margin-top:5px}
+.learning-quiz-form{display:grid;gap:14px}
+.learning-question{border:1px solid #ffffff1b;border-radius:14px;background:#171c25;padding:17px;min-width:0}
+.learning-question legend{font-weight:850;line-height:1.5;padding:0 4px 10px}
+.learning-answer{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid #ffffff16;border-radius:9px;margin-top:7px;color:#c3cad5;cursor:pointer}
+.learning-answer:has(input:checked){border-color:#c94a51;background:#351d22;color:#fff}
+.learning-answer input{margin-top:4px;accent-color:#d51f27}
+.learning-quiz-submit{justify-self:start;margin-top:4px}
+.learning-quiz-score{font-size:20px;font-weight:900;padding:16px;border-radius:12px;background:#202a38;margin:12px 0}
+.learning-quiz-feedback{padding:13px 15px;border-radius:10px;margin:8px 0;border:1px solid #ffffff18}
+.learning-quiz-feedback p{margin:5px 0 0;line-height:1.5;color:#c4ccd7}
+.learning-quiz-feedback.correct{background:#14291f;border-color:#285a3c}.learning-quiz-feedback.incorrect{background:#2d2118;border-color:#6c4b29}
+@media(max-width:700px){.learning-lesson-section{grid-template-columns:1fr;padding:16px}.learning-lesson-index{width:30px;height:30px}.learning-quiz-submit{width:100%}.learning-question{padding:14px}}
