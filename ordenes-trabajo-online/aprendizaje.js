@@ -1,19 +1,20 @@
 import { sb } from './supabase-client.js';
-import { plasmaLessons, plasmaQuiz } from './aprendizaje-plasma.js';
+import { plasmaPath, plasmaQuiz } from './aprendizaje-plasma.js';
 
 const $=id=>document.getElementById(id);
-let allowed=false,canKnowledge=false,currentArea=null;
+let allowed=false,canKnowledge=false,currentArea=null,currentMission=null,currentStep=0;
+let quizIndex=0,quizAnswers={};
 
 const areas=[
- {id:'plasma',icon:'🔥',name:'Corte plasma',desc:'Control CNC MASTER XP, preparación, operación y parámetros',topics:plasmaLessons},
- {id:'laser',icon:'⚡',name:'Láser',desc:'Operación, parámetros y mantenimiento',topics:[['Conocer el equipo','Componentes, fuentes, cabezal y sistemas auxiliares.','Contenido por documentar'],['Preparar un trabajo','Archivos, materiales, espesores y preparación del corte.','Contenido por documentar'],['Operación y parámetros','Secuencia de trabajo y parámetros autorizados.','Contenido por documentar'],['Seguridad y mantenimiento','Inspecciones, limpieza y mantenimiento preventivo.','Contenido por documentar']]},
- {id:'taller',icon:'🔧',name:'Taller',desc:'Procesos, herramientas y procedimientos',topics:[['Procedimientos de taller','Secuencias de trabajo y buenas prácticas.','Contenido por documentar'],['Herramientas y equipos','Uso correcto, inspección y cuidado.','Contenido por documentar'],['Seguridad general','Orden, limpieza, EPP y prevención de riesgos.','Contenido por documentar'],['Conocimiento 3D','Modelos, piezas, fotografías e instructivos interactivos.','Abrir módulo']]},
- {id:'torneria',icon:'⚙️',name:'Tornería',desc:'Torno CNC, programación y medición',topics:[['Conocer el torno','Componentes, mandril, herramientas y referencias.','Contenido por documentar'],['Programación CNC','Estructura de programas, ciclos y operaciones.','Contenido por documentar'],['Mecanizado y herramientas','Selección de herramientas y secuencias de trabajo.','Contenido por documentar'],['Medición y control','Instrumentos, tolerancias y verificación de piezas.','Contenido por documentar']]}
+ {id:'plasma',icon:'🔥',name:'Corte plasma',desc:'Aprendé a usar el pantógrafo desde cero, paso a paso.'},
+ {id:'laser',icon:'⚡',name:'Láser',desc:'Operación, parámetros y mantenimiento',topics:[['Conocer el equipo','Componentes, fuentes, cabezal y sistemas auxiliares.'],['Preparar un trabajo','Archivos, materiales y espesores.'],['Operación y parámetros','Secuencia de trabajo y parámetros autorizados.'],['Seguridad y mantenimiento','Inspecciones, limpieza y mantenimiento preventivo.']]},
+ {id:'taller',icon:'🔧',name:'Taller',desc:'Procesos, herramientas y procedimientos',topics:[['Procedimientos de taller','Secuencias de trabajo y buenas prácticas.'],['Herramientas y equipos','Uso correcto, inspección y cuidado.'],['Seguridad general','Orden, limpieza, EPP y prevención de riesgos.'],['Conocimiento 3D','Modelos, piezas, fotografías e instructivos interactivos.','Abrir módulo']]},
+ {id:'torneria',icon:'⚙️',name:'Tornería',desc:'Torno CNC, programación y medición',topics:[['Conocer el torno','Componentes, mandril, herramientas y referencias.'],['Programación CNC','Estructura de programas y operaciones.'],['Mecanizado y herramientas','Selección de herramientas y secuencias.'],['Medición y control','Instrumentos, tolerancias y verificación.']]}
 ];
 
 function injectCss(){
  if(document.querySelector('link[href*="aprendizaje.css"]'))return;
- const link=document.createElement('link');link.rel='stylesheet';link.href='./aprendizaje.css?v=20261124-1725';document.head.appendChild(link);
+ const link=document.createElement('link');link.rel='stylesheet';link.href='./aprendizaje.css?v=20261124-1800';document.head.appendChild(link);
 }
 function build(){
  if($('learningApp'))return;
@@ -22,22 +23,34 @@ function build(){
  <div id="learningApp" class="learning-app" aria-hidden="true">
   <header class="learning-header">
    <div><div class="learning-brand">AGRO<span>DISEÑO</span></div><div class="learning-kicker">CENTRO DE CAPACITACIÓN</div></div>
-   <div class="learning-header-actions"><button type="button" id="learningHome" class="learning-btn learning-btn-quiet">← Inicio</button></div>
+   <button type="button" id="learningHome" class="learning-btn learning-btn-quiet">← Inicio</button>
   </header>
   <main class="learning-main">
    <section id="learningIndex">
-    <div class="learning-intro"><div class="learning-eyebrow">FORMACIÓN INTERNA</div><h1>Aprendizaje</h1><p>Elegí el sector para acceder a su capacitación, instructivos, simuladores y evaluaciones.</p></div>
+    <div class="learning-intro"><div class="learning-eyebrow">FORMACIÓN INTERNA</div><h1>Aprendizaje</h1><p>Elegí el sector que querés aprender.</p></div>
     <div id="learningAreas" class="learning-area-grid"></div>
    </section>
    <section id="learningAreaPage" hidden>
-    <button type="button" id="learningBackAreas" class="learning-back">← Todos los sectores</button>
-    <div class="learning-intro learning-intro-compact"><div class="learning-eyebrow">SECTOR DE CAPACITACIÓN</div><h1 id="learningAreaTitle"></h1><p id="learningAreaDesc"></p></div>
+    <button type="button" id="learningBackAreas" class="learning-back">← Sectores</button>
+    <div class="learning-intro learning-intro-compact"><div class="learning-eyebrow">CAPACITACIÓN</div><h1 id="learningAreaTitle"></h1><p id="learningAreaDesc"></p></div>
     <div id="learningTopics" class="learning-topic-grid"></div>
    </section>
    <section id="learningLessonPage" hidden>
-    <button type="button" id="learningBackTopics" class="learning-back">← Volver a los temas</button>
-    <div class="learning-lesson-head"><div class="learning-eyebrow" id="learningLessonSource"></div><h1 id="learningLessonTitle"></h1><p id="learningLessonDesc"></p></div>
-    <div id="learningLessonContent" class="learning-lesson-content"></div>
+    <button type="button" id="learningBackTopics" class="learning-back">← Volver al recorrido</button>
+    <div class="learning-guided-head">
+     <div class="learning-eyebrow" id="learningLessonSource"></div>
+     <div class="learning-progress-track"><span id="learningProgressFill"></span></div>
+     <div class="learning-step-count" id="learningStepCount"></div>
+     <h1 id="learningLessonTitle"></h1><p id="learningLessonDesc"></p>
+    </div>
+    <div id="learningLessonContent" class="learning-guided-content"></div>
+    <div class="learning-guided-actions" id="learningGuidedActions"></div>
+   </section>
+   <section id="learningQuizPage" hidden>
+    <button type="button" id="learningBackQuiz" class="learning-back">← Volver al recorrido</button>
+    <div class="learning-guided-head"><div class="learning-eyebrow">REPASO FINAL</div><div class="learning-step-count" id="quizStepCount"></div><h1>¿Qué aprendiste?</h1><p>Respondé tranquilo. Después de cada respuesta te explicamos por qué.</p></div>
+    <div id="learningQuizContent" class="learning-guided-content"></div>
+    <div id="learningQuizActions" class="learning-guided-actions"></div>
    </section>
   </main>
   <footer class="learning-footer">AgroDiseño · Capacitación interna</footer>
@@ -45,66 +58,103 @@ function build(){
  $('learningHome').onclick=showModulePicker;
  $('learningBackAreas').onclick=showAreas;
  $('learningBackTopics').onclick=showTopics;
+ $('learningBackQuiz').onclick=showTopics;
  $('learningAreas').innerHTML=areas.map(a=>`<button type="button" class="learning-area-card" data-area="${a.id}"><span class="learning-area-icon">${a.icon}</span><span class="learning-area-name">${a.name}</span><span class="learning-area-desc">${a.desc}</span><span class="learning-area-link">Ingresar <b>→</b></span></button>`).join('');
  $('learningAreas').querySelectorAll('[data-area]').forEach(b=>b.onclick=()=>openArea(b.dataset.area));
 }
 function showModulePicker(){
- $('learningApp')?.classList.remove('show');
- $('learningApp')?.setAttribute('aria-hidden','true');
- $('modulePicker')?.classList.remove('hidden');
+ $('learningApp')?.classList.remove('show');$('learningApp')?.setAttribute('aria-hidden','true');$('modulePicker')?.classList.remove('hidden');
 }
 function showAreas(){
- $('learningAreaPage').hidden=true;$('learningLessonPage').hidden=true;$('learningIndex').hidden=false;currentArea=null;
+ $('learningAreaPage').hidden=true;$('learningLessonPage').hidden=true;$('learningQuizPage').hidden=true;$('learningIndex').hidden=false;currentArea=null;
 }
 function showTopics(){
- $('learningLessonPage').hidden=true;$('learningAreaPage').hidden=false;
+ $('learningLessonPage').hidden=true;$('learningQuizPage').hidden=true;$('learningIndex').hidden=true;$('learningAreaPage').hidden=false;
 }
 function openArea(id){
  const area=areas.find(x=>x.id===id);if(!area)return;currentArea=area;
- $('learningIndex').hidden=true;$('learningLessonPage').hidden=true;$('learningAreaPage').hidden=false;
- $('learningAreaTitle').textContent=area.name;$('learningAreaDesc').textContent=area.desc;
+ $('learningIndex').hidden=true;$('learningLessonPage').hidden=true;$('learningQuizPage').hidden=true;$('learningAreaPage').hidden=false;
+ $('learningAreaTitle').textContent=area.name;$('learningAreaDesc').textContent=area.id==='plasma'?'No necesitás experiencia. Empezá por el primer tema y avanzá de a poco.':'Elegí un tema para conocer los procedimientos de este sector.';
  if(id==='plasma'){
-  $('learningTopics').innerHTML=area.topics.map((t,i)=>`<article class="learning-topic-card"><div class="learning-topic-top"><span class="learning-topic-number">${String(i+1).padStart(2,'0')}</span><span class="learning-topic-status is-ready">${t.pages}</span></div><h2>${t.title}</h2><p>${t.desc}</p><button type="button" class="learning-topic-action" data-lesson="${t.id}">Estudiar tema →</button></article>`).join('')+`<article class="learning-topic-card learning-quiz-card"><div class="learning-topic-top"><span class="learning-topic-number">✓</span><span class="learning-topic-status">Autoevaluación</span></div><h2>Repaso del CNC MASTER XP</h2><p>Preguntas para comprobar lo aprendido del manual.</p><button type="button" class="learning-topic-action" id="learningOpenQuiz">Comenzar repaso →</button></article>`;
-  $('learningTopics').querySelectorAll('[data-lesson]').forEach(b=>b.onclick=()=>openLesson(b.dataset.lesson));
+  $('learningTopics').innerHTML=`
+   <article class="learning-start-card"><div class="learning-start-icon">👋</div><div><div class="learning-start-label">SI NUNCA USASTE UN PANTÓGRAFO</div><h2>Empezá desde cero</h2><p>Te vamos a explicar qué mirar, qué significa cada control y cómo se prepara un trabajo. Un paso a la vez.</p><button type="button" class="learning-topic-action learning-start-button" id="learningStart">Comenzar aprendizaje →</button></div></article>
+   <div class="learning-path-label">TU RECORRIDO · 6 TEMAS</div>
+   `+plasmaPath.map((m,i)=>`<button type="button" class="learning-path-card" data-mission="${m.id}"><span class="learning-path-number">${String(i+1).padStart(2,'0')}</span><span class="learning-path-icon">${m.icon}</span><span class="learning-path-copy"><b>${m.title}</b><small>${m.subtitle}</small></span><span class="learning-path-arrow">›</span></button>`).join('')+`
+   <article class="learning-plain-note"><b>Importante</b><p>Esta capacitación sirve para aprender los controles. No reemplaza la práctica con un operador autorizado. No cambies parámetros ni inicies un corte sin autorización.</p></article>
+   <button type="button" class="learning-topic-action learning-quiz-open" id="learningOpenQuiz">Hacer un repaso de lo aprendido →</button>`;
+  $('learningStart').onclick=()=>openMission(plasmaPath[0].id);
+  $('learningTopics').querySelectorAll('[data-mission]').forEach(b=>b.onclick=()=>openMission(b.dataset.mission));
   $('learningOpenQuiz').onclick=openQuiz;
  }else{
-  $('learningTopics').innerHTML=area.topics.map((t,i)=>`<article class="learning-topic-card"><div class="learning-topic-top"><span class="learning-topic-number">${String(i+1).padStart(2,'0')}</span><span class="learning-topic-status ${t[2]==='Abrir módulo'&&canKnowledge?'is-ready':''}">${t[2]==='Abrir módulo'&&!canKnowledge?'Permiso adicional':t[2]}</span></div><h2>${t[0]}</h2><p>${t[1]}</p>${t[2]==='Abrir módulo'&&canKnowledge?'<button type="button" class="learning-topic-action" id="learningOpenKnowledge">Abrir Conocimiento 3D →</button>':`<span class="learning-topic-note">${t[2]==='Abrir módulo'?'Disponible para usuarios con permiso de Conocimiento.':'Material de capacitación a incorporar'}</span>`}</article>`).join('');
+  $('learningTopics').innerHTML=(area.topics||[]).map((t,i)=>`<article class="learning-topic-card"><div class="learning-topic-top"><span class="learning-topic-number">${String(i+1).padStart(2,'0')}</span><span class="learning-topic-status">Próximamente</span></div><h2>${t[0]}</h2><p>${t[1]}</p>${t[2]==='Abrir módulo'&&canKnowledge?'<button type="button" class="learning-topic-action" id="learningOpenKnowledge">Abrir Conocimiento 3D →</button>':'<span class="learning-topic-note">Material de capacitación a incorporar</span>'}</article>`).join('');
   $('learningOpenKnowledge')?.addEventListener('click',()=>{
    $('learningApp').classList.remove('show');$('modulePicker')?.classList.remove('hidden');
-   const launcher=$('goKnowledgeLauncher')||$('goKnowledge');
-   if(launcher){launcher.click();return}
+   const launcher=$('goKnowledgeLauncher')||$('goKnowledge');if(launcher){launcher.click();return}
    alert('No se encontró el acceso a Conocimiento 3D. Verificá que tu usuario tenga habilitado el permiso de Conocimiento.');
   });
  }
 }
-function openLesson(id){
- const lesson=plasmaLessons.find(x=>x.id===id);if(!lesson)return;
- $('learningAreaPage').hidden=true;$('learningLessonPage').hidden=false;
- $('learningLessonTitle').textContent=lesson.title;$('learningLessonDesc').textContent=lesson.desc;
- $('learningLessonSource').textContent='CNC MASTER XP · '+lesson.pages;
- $('learningLessonContent').innerHTML=lesson.sections.map((s,i)=>`<article class="learning-lesson-section"><div class="learning-lesson-index">${String(i+1).padStart(2,'0')}</div><div><h2>${s.heading}</h2><p>${s.body}</p></div></article>`).join('')+`<div class="learning-source-note"><b>Base de este contenido:</b> manual CNC MASTER versión XP. Esta capacitación explica el documento; no reemplaza la formación práctica, los parámetros validados de la máquina ni los procedimientos de seguridad de AgroDiseño.</div>`;
+function openMission(id){
+ currentMission=plasmaPath.find(m=>m.id===id);if(!currentMission)return;currentStep=0;
+ $('learningAreaPage').hidden=true;$('learningQuizPage').hidden=true;$('learningLessonPage').hidden=false;
+ $('learningLessonTitle').textContent=currentMission.title;$('learningLessonDesc').textContent=currentMission.subtitle;
+ $('learningLessonSource').textContent='CORTE PLASMA · '+currentMission.icon;
+ renderGuidedStep();
 }
-function openQuiz(){
- $('learningAreaPage').hidden=true;$('learningLessonPage').hidden=false;
- $('learningLessonTitle').textContent='Autoevaluación · Corte Plasma';
- $('learningLessonDesc').textContent='Respondé según el manual CNC MASTER XP. Al finalizar vas a ver el resultado y la explicación de cada respuesta.';
- $('learningLessonSource').textContent='REPASO DEL MANUAL';
- $('learningLessonContent').innerHTML=`<form id="plasmaQuizForm" class="learning-quiz-form">${plasmaQuiz.map((q,i)=>`<fieldset class="learning-question"><legend>${i+1}. ${q.q}</legend>${q.opts.map((o,j)=>`<label class="learning-answer"><input type="radio" name="q${i}" value="${j}"><span>${o}</span></label>`).join('')}</fieldset>`).join('')}<button class="learning-topic-action learning-quiz-submit" type="submit">Corregir respuestas</button><div id="plasmaQuizResult" aria-live="polite"></div></form>`;
- $('plasmaQuizForm').onsubmit=e=>{
-  e.preventDefault();let score=0;const details=plasmaQuiz.map((q,i)=>{const chosen=$('plasmaQuizForm').querySelector(`input[name="q${i}"]:checked`);const ok=!!chosen&&Number(chosen.value)===q.a;if(ok)score++;return `<div class="learning-quiz-feedback ${ok?'correct':'incorrect'}"><b>${i+1}. ${ok?'Correcto':'Para revisar'}</b><p>${q.why}</p></div>`});
-  $('plasmaQuizResult').innerHTML=`<div class="learning-quiz-score">Resultado: ${score} de ${plasmaQuiz.length}</div>${details.join('')}`;
-  $('plasmaQuizResult').scrollIntoView({behavior:'smooth',block:'start'});
+function renderGuidedStep(){
+ const total=currentMission.steps.length,step=currentMission.steps[currentStep];
+ $('learningProgressFill').style.width=((currentStep+1)/total*100)+'%';
+ $('learningStepCount').textContent='PASO '+(currentStep+1)+' DE '+total;
+ $('learningLessonContent').innerHTML=`
+  <article class="learning-simple-step">
+   <div class="learning-simple-step-label">AHORA VAMOS A APRENDER</div>
+   <h2>${step.title}</h2><p>${step.body}</p>
+   <div class="learning-control-example"><span>EN LA PANTALLA VAS A VER</span><strong>${step.key}</strong></div>
+   <div class="learning-tip"><span>💡</span><div><b>Recordá esto</b><p>${step.tip}</p></div></div>
+  </article>`;
+ $('learningGuidedActions').innerHTML=`
+  <button type="button" class="learning-back-step" id="learningPrevStep" ${currentStep===0?'disabled':''}>← Anterior</button>
+  <button type="button" class="learning-topic-action learning-next-step" id="learningNextStep">${currentStep===total-1?'Terminé este tema ✓':'Siguiente paso →'}</button>`;
+ $('learningPrevStep').onclick=()=>{if(currentStep>0){currentStep--;renderGuidedStep()}};
+ $('learningNextStep').onclick=()=>{
+  if(currentStep<total-1){currentStep++;renderGuidedStep();window.scrollTo({top:0,behavior:'smooth'});}
+  else{showTopics();$('learningTopics')?.scrollIntoView({behavior:'smooth',block:'start'});}
  };
 }
+function openQuiz(){
+ quizIndex=0;quizAnswers={};$('learningAreaPage').hidden=true;$('learningLessonPage').hidden=true;$('learningQuizPage').hidden=false;renderQuizQuestion();
+}
+function renderQuizQuestion(){
+ const q=plasmaQuiz[quizIndex],chosen=quizAnswers[quizIndex];
+ $('quizStepCount').textContent='PREGUNTA '+(quizIndex+1)+' DE '+plasmaQuiz.length;
+ $('learningQuizContent').innerHTML=`
+  <article class="learning-simple-step learning-quiz-simple">
+   <div class="learning-simple-step-label">PREGUNTA ${quizIndex+1}</div><h2>${q.q}</h2>
+   <div class="learning-quiz-options">${q.opts.map((o,i)=>`<label class="learning-quiz-option ${chosen===i?'selected':''}"><input type="radio" name="plasmaAnswer" value="${i}" ${chosen===i?'checked':''}><span>${o}</span></label>`).join('')}</div>
+   <div id="learningQuizExplanation"></div>
+  </article>`;
+ $('learningQuizContent').querySelectorAll('input[name="plasmaAnswer"]').forEach(el=>el.onchange=()=>{quizAnswers[quizIndex]=Number(el.value);renderQuizQuestion()});
+ const correct=chosen===q.a;
+ $('learningQuizActions').innerHTML=chosen===undefined
+ ?'<span class="learning-quiz-hint">Elegí una respuesta para continuar.</span>'
+ :`<div class="learning-quiz-explain ${correct?'is-correct':'is-review'}"><b>${correct?'¡Muy bien!':'Vamos a repasarlo'}</b><p>${q.why}</p></div><button type="button" class="learning-topic-action learning-next-step" id="learningQuizNext">${quizIndex===plasmaQuiz.length-1?'Ver resultado':'Siguiente pregunta →'}</button>`;
+ $('learningQuizNext')?.addEventListener('click',()=>{
+  if(quizIndex<plasmaQuiz.length-1){quizIndex++;renderQuizQuestion()}
+  else{
+   const score=plasmaQuiz.reduce((n,item,i)=>n+(quizAnswers[i]===item.a?1:0),0);
+   $('learningQuizContent').innerHTML=`<div class="learning-quiz-final"><div class="learning-start-icon">🎉</div><h2>Terminaste el repaso</h2><strong>${score} de ${plasmaQuiz.length}</strong><p>${score===plasmaQuiz.length?'¡Excelente! Reconocés los conceptos principales.':'Buen comienzo. Podés volver a los temas y repasar lo que necesites.'}</p></div>`;
+   $('learningQuizActions').innerHTML='<button type="button" class="learning-topic-action learning-next-step" id="learningQuizReturn">Volver al recorrido</button>';
+   $('learningQuizReturn').onclick=showTopics;
+  }
+ });
+}
 function addLauncher(){
- const cards=document.querySelector('#modulePicker .module-cards');
- if(!cards||$('goLearning'))return false;
+ const cards=document.querySelector('#modulePicker .module-cards');if(!cards||$('goLearning'))return false;
  const btn=document.createElement('button');btn.type='button';btn.className='module-card';btn.id='goLearning';
  btn.innerHTML='<div class="module-icon">📚</div><div class="module-name">Aprendizaje</div><div class="module-desc">Capacitación por sector, simuladores, instructivos y evaluaciones.</div>';
  btn.addEventListener('click',()=>{
   $('modulePicker')?.classList.add('hidden');$('shell')?.classList.add('hidden');$('sparesApp')?.classList.add('hidden');
-  $('carriersApp')?.classList.add('hidden');$('transportApp')?.classList.add('hidden');
-  $('knowledgeAppV5')?.classList.remove('show');
+  $('carriersApp')?.classList.add('hidden');$('transportApp')?.classList.add('hidden');$('knowledgeAppV5')?.classList.remove('show');
   build();showAreas();$('learningApp').classList.add('show');$('learningApp').setAttribute('aria-hidden','false');
  });
  cards.appendChild(btn);return true;
