@@ -6,7 +6,7 @@ const field=(x,y,w,h,t)=>rect(x,y,w,h,"#071d9a","#222",2)+txt(x+w/2,y+h/2+6,t,17
 const focusRect=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="9" fill="#ef4444" fill-opacity=".08" stroke="#ef5964" stroke-width="7" stroke-dasharray="15 8"/>`;
 const svgUrl=s=>`data:image/svg+xml;charset=utf-8,${encodeURIComponent(s)}`;
 function mainSvg(focus){
- let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img">';
+ let s='<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img">';
  s+=rect(0,0,1200,700,"#080808","#080808",0)+rect(0,0,1200,28,"#c5c5c5","#777",0)+txt(18,20,"Edición de pantalla:010 · Control CNC",15,"#222",600);
  s+=rect(12,38,600,565,"#f8f8f8","#777",4);
  s+=rect(620,38,570,160,"#999","#555",4);
@@ -35,7 +35,7 @@ function mainSvg(focus){
  return s+'</svg>';
 }
 function paramsSvg(focus){
- let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" role="img">';
+ let s='<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img">';
  s+=rect(0,0,1000,560,"#bcbcbc","#666",0);
  const panel=(x,y,w,h,title)=>{let p=rect(x,y,w,h,"#7775c9","#29278b",2)+txt(x+w/2,y+24,title,16,"#fff",800,"middle");return p};
  s+=panel(10,10,330,210,"DESPLAZAMIENTO");
@@ -53,7 +53,7 @@ function paramsSvg(focus){
  if(focus==="advanced"){s+=focusRect(10,370,330,120)+focusRect(350,270,250,150)}
  return s+'</svg>';
 }
-const visual=(kind,focus,caption)=>({src:svgUrl(kind==="params"?paramsSvg(focus):mainSvg(focus)),alt:"Vista esquemática de la pantalla CNC MASTER XP basada en el manual",caption});
+const visual=(kind,focus,caption)=>({src:svgUrl(kind==="params"?paramsSvg(focus):mainSvg(focus)),alt:"Vista esquemática de la pantalla CNC MASTER XP basada en el manual",caption:"Esquema de referencia basado en el manual CNC MASTER XP · "+caption});
 export function getPlasmaVisual(missionId,stepIndex){
  const main=(focus,caption)=>visual("main",focus,caption);
  const params=(focus,caption)=>visual("params",focus,caption);
