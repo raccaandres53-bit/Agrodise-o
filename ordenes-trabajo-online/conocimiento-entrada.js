@@ -23,7 +23,7 @@ function addKnowledgeLauncher(){
   const btn=document.createElement('button');
   btn.className='module-card';
   btn.id='goKnowledgeLauncher';
-  btn.innerHTML='<div class="module-icon">🧠</div><div class="module-name">Conocimiento</div><div class="module-desc">Instructivos interactivos, capacitación y experiencia del taller.</div>';
+  btn.innerHTML='<div class="module-icon">🧠</div><div class="module-name">Conocimiento 3D</div><div class="module-desc">Modelos 3D, componentes, fotos reales e instructivos técnicos.</div>';
 
   btn.onclick=async()=>{
     if(!canKnowledge){alert('No tenés permiso para ingresar a Conocimiento.');return}
