@@ -35,6 +35,7 @@
 @keyframes agro-enter{from{opacity:.65;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
 .view.active,.modal.show .dialog,.learning-app.show,#learningAreaPage:not([hidden]),#learningLessonPage:not([hidden]),#learningQuizPage:not([hidden]){animation:agro-enter .22s ease-out}
 @media(prefers-reduced-motion:reduce){#agroLoader{transition:none}.agro-cut-trace,.agro-cut-head,.agro-cut-sparks,.agro-load-track:after,.view.active,.modal.show .dialog,.learning-app.show,#learningAreaPage,#learningLessonPage,#learningQuizPage{animation:none!important}.agro-cut-trace{stroke-dashoffset:0}}
+#agroLoader[data-visible="false"] .agro-cut-trace,#agroLoader[data-visible="false"] .agro-cut-head,#agroLoader[data-visible="false"] .agro-cut-sparks,#agroLoader[data-visible="false"] .agro-load-track:after{animation:none}
 @media print{#agroLoader{display:none!important}}
 </style>
 </head>
@@ -62,6 +63,19 @@
  window.agroBeginLoading=function(message){const id=++seq;jobs.set(id,message);render();let finished=false;return function(){if(finished)return;finished=true;jobs.delete(id);render()}};
  window.agroLoading=async function(message,run){const done=window.agroBeginLoading(message);try{return await run()}finally{done()}};
  window.agroBootDone=function(){boot=false;render()};
+ // One entry animation for every current or future module card, including synchronous modules.
+ function agroModuleEntry(event){
+  const button=event.target instanceof Element?event.target.closest('#modulePicker .module-card, #modulePicker #usersAdminBtn'):null;
+  if(!button||button.disabled||button.getAttribute('aria-disabled')==='true')return;
+  const picker=document.getElementById('modulePicker');
+  if(!picker||picker.classList.contains('hidden'))return;
+  const name=(button.querySelector('.module-name')?.textContent||button.textContent||'módulo').trim();
+  const done=window.agroBeginLoading('Abriendo '+name);
+  // Existing async operations keep their own jobs active. Never delay their execution.
+  queueMicrotask(done);
+ }
+ document.addEventListener('click',agroModuleEntry,true);
+
  setTimeout(()=>{if(boot){boot=false;render()}},12000);
  window.addEventListener('pageshow',e=>{if(e.persisted){boot=false;jobs.clear();clearTimeout(hideTimer);el.dataset.visible='false';el.dataset.boot='false'}});
 })();
