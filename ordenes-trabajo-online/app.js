@@ -20,7 +20,8 @@ async function ensureAccess(session){
 }
 function showLogin(){$("login").classList.remove("hidden");$("shell").classList.add("hidden")}
 function showApp(){$("login").classList.add("hidden");$("shell").classList.remove("hidden")}
-async function login(){
+async function login(...args){const run=()=>agroRaw_login(...args);return typeof window.agroLoading==='function'?window.agroLoading("Verificando acceso",run):run()}
+async function agroRaw_login(){
   const email=$("loginEmail").value.trim(),password=$("loginPassword").value;
   if(!email||!password){setLoginMsg("Completá email y contraseña.",true);return}
   setLoginMsg("Ingresando...");
@@ -28,7 +29,8 @@ async function login(){
   if(error){setLoginMsg(error.message,true);return}
   await ensureAccess(data.session);
 }
-async function signup(){
+async function signup(...args){const run=()=>agroRaw_signup(...args);return typeof window.agroLoading==='function'?window.agroLoading("Creando tu cuenta",run):run()}
+async function agroRaw_signup(){
   const email=$("loginEmail").value.trim(),password=$("loginPassword").value;
   if(!email||password.length<6){setLoginMsg("Ingresá un email y una contraseña de al menos 6 caracteres.",true);return}
   setLoginMsg("Creando cuenta...");
@@ -40,7 +42,8 @@ async function signup(){
 $("loginBtn").onclick=login;$("signupBtn").onclick=signup;$("loginPassword").addEventListener("keydown",e=>{if(e.key==="Enter")login()});
 $("logoutBtn").onclick=async()=>{await supabase.auth.signOut();showLogin();setLoginMsg("Sesión cerrada.")};
 
-async function load(){
+async function load(...args){const run=()=>agroRaw_load(...args);return typeof window.agroLoading==='function'?window.agroLoading("Cargando órdenes de trabajo",run):run()}
+async function agroRaw_load(){
   const {data:orders,error}=await supabase.from("orders").select("*").order("id",{ascending:false});
   if(error){toast("Error cargando órdenes: "+error.message);return}
   const {data:tasks}=await supabase.from("tasks").select("order_id,status");
@@ -70,7 +73,8 @@ function loadHistory(){$("historyBox").innerHTML=`<table class="table"><thead><t
 function newOrder(){
  current=null;$("mt").textContent="Nueva reparación";$("code").textContent="Se asignará número al guardar";["client","machine","model","serial","operator","observations"].forEach(x=>$(x).value="");$("date_in").value=new Date().toISOString().slice(0,10);$("status").value="Pendiente";$("tasks").innerHTML=$("checks").innerHTML=$("parts").innerHTML="";defaults.forEach((x,i)=>addCheck({item:x,condition:"Revisar",comment:"",position:i}));addTask();$("del").style.display="none";$("photos").innerHTML="";$("photoHint").style.display="";$("modal").classList.add("show")
 }
-async function editOrder(id){
+async function editOrder(...args){const run=()=>agroRaw_editOrder(...args);return typeof window.agroLoading==='function'?window.agroLoading("Abriendo orden de trabajo",run):run()}
+async function agroRaw_editOrder(id){
  const [{data:o,error},{data:tasks},{data:checks},{data:parts},{data:photos}]=await Promise.all([
   supabase.from("orders").select("*").eq("id",id).single(),
   supabase.from("tasks").select("*").eq("order_id",id).order("position"),
@@ -89,7 +93,8 @@ function addTask(v={description:"",status:"Pendiente"}){let r=document.createEle
 function addCheck(v={item:"",condition:"Revisar",comment:""}){let r=document.createElement("tr");r.innerHTML=`<td><input class="mini ci" style="width:100%" value="${esc(v.item)}"></td><td><select class="mini cc"><option>Revisar</option><option>OK</option><option>No llegó</option><option>Dañado</option></select></td><td><input class="mini cm" style="width:100%" value="${esc(v.comment)}"></td><td><button class="mini rm">×</button></td>`;r.querySelector(".cc").value=v.condition;r.querySelector(".rm").onclick=()=>r.remove();$("checks").appendChild(r)}
 function addPart(v={qty:1,description:"",sector:"Comercial",status:"Pendiente"}){let r=document.createElement("tr");r.innerHTML=`<td><input type="number" min="0" step="1" class="mini pq" style="width:65px" value="${v.qty}"></td><td><input class="mini pd" style="width:100%" value="${esc(v.description)}"></td><td><select class="mini ps"><option>Comercial</option><option>Corte láser</option><option>Plegado</option><option>Mecanizado</option><option>Soldadura</option></select></td><td><select class="mini pst"><option>Pendiente</option><option>Pedido</option><option>Listo</option></select></td><td><button class="mini rm">×</button></td>`;r.querySelector(".ps").value=v.sector||"Comercial";r.querySelector(".pst").value=v.status||"Pendiente";r.querySelector(".rm").onclick=()=>r.remove();$("parts").appendChild(r)}
 function collect(){return{client:$("client").value.trim(),machine:$("machine").value.trim(),model:$("model").value.trim(),serial:$("serial").value.trim(),operator:$("operator").value.trim(),date_in:$("date_in").value||null,status:$("status").value,observations:$("observations").value,tasks:[...$("tasks").querySelectorAll("tr")].map((r,i)=>({description:r.querySelector(".td").value.trim(),status:r.querySelector(".ts").value,position:i})).filter(x=>x.description),checklist:[...$("checks").querySelectorAll("tr")].map((r,i)=>({item:r.querySelector(".ci").value.trim(),condition:r.querySelector(".cc").value,comment:r.querySelector(".cm").value.trim(),position:i})).filter(x=>x.item),parts:[...$("parts").querySelectorAll("tr")].map((r,i)=>({qty:+r.querySelector(".pq").value||1,description:r.querySelector(".pd").value.trim(),sector:r.querySelector(".ps").value,status:r.querySelector(".pst").value,position:i})).filter(x=>x.description)}}
-async function saveOrder(){
+async function saveOrder(...args){const run=()=>agroRaw_saveOrder(...args);return typeof window.agroLoading==='function'?window.agroLoading("Guardando orden",run):run()}
+async function agroRaw_saveOrder(){
  const b=collect();if(!b.client&&!b.machine){toast("Cargá al menos cliente o máquina.");return}
  const base={client:b.client,machine:b.machine,model:b.model,serial:b.serial,operator:b.operator,date_in:b.date_in,status:b.status,observations:b.observations,updated_at:new Date().toISOString()};
  let oid=current;
@@ -107,7 +112,8 @@ async function delOrder(){
  const {error}=await supabase.from("orders").delete().eq("id",current);if(error){toast(error.message);return}closeM();await load();toast("Orden eliminada")
 }
 function safeName(n){return n.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9._-]/g,"_")}
-async function uploadPhoto(){
+async function uploadPhoto(...args){const run=()=>agroRaw_uploadPhoto(...args);return typeof window.agroLoading==='function'?window.agroLoading("Subiendo fotografía",run):run()}
+async function agroRaw_uploadPhoto(){
  if(!current){toast("Guardá primero la orden.");return}const f=$("photoFile").files[0];if(!f)return;if(f.size>8*1024*1024){toast("Máximo 8 MB por foto.");return}
  const path=`${current}/${crypto.randomUUID()}-${safeName(f.name)}`;const {error:ue}=await supabase.storage.from("order-photos").upload(path,f,{upsert:false,contentType:f.type});if(ue){toast(ue.message);return}
  const {error:de}=await supabase.from("photos").insert({order_id:current,path,original_name:f.name});if(de){await supabase.storage.from("order-photos").remove([path]);toast(de.message);return}
@@ -144,7 +150,8 @@ function setOrderPhotoZoom(g,value){
  g.zoom=Math.max(1,Math.min(6,value));
  const img=g.stage.querySelector("img");if(img)img.style.transform=`scale(${g.zoom})`;
 }
-async function showOrderPhoto(index){
+async function showOrderPhoto(...args){const run=()=>agroRaw_showOrderPhoto(...args);return typeof window.agroLoading==='function'?window.agroLoading("Cargando fotografía",run):run()}
+async function agroRaw_showOrderPhoto(index){
  const g=photoGallery;if(!g||!g.photos.length)return;
  g.index=(index+g.photos.length)%g.photos.length;
  g.requestId++;const requestId=g.requestId;
@@ -216,13 +223,14 @@ async function downloadOrderPhoto(photo,button){
 }
 async function deletePhoto(id,path){if(!confirm("¿Eliminar foto?"))return;await supabase.storage.from("order-photos").remove([path]);await supabase.from("photos").delete().eq("id",id);await editOrder(current)}
 function printOrder(){let o=collect(),t=o.tasks.map(x=>`<tr><td>${esc(x.description)}</td><td style="text-align:center">□</td><td></td></tr>`).join("")+Array.from({length:Math.max(4,9-o.tasks.length)},()=>"<tr><td></td><td style='text-align:center'>□</td><td></td></tr>").join(""),c=o.checklist.slice(0,12).map(x=>`<tr><td>${esc(x.item)}</td><td></td><td>${esc(x.comment)}</td></tr>`).join(""),p=o.parts.map(x=>`<tr><td>${x.qty}</td><td>${esc(x.description)}</td><td>${esc(x.sector)}</td><td></td></tr>`).join("")+Array.from({length:Math.max(4,8-o.parts.length)},()=>"<tr><td></td><td></td><td></td><td></td></tr>").join("");$("print").innerHTML=`<div class="ph"><div><div class="pl">AGRO<b>DISEÑO</b></div><div style="font-size:10px">ORDEN DE TRABAJO</div></div><b>OT-${current?String(current).padStart(4,"0"):"____"}</b></div><div style="font-size:11px;line-height:1.7;margin-top:7px"><b>CLIENTE:</b> ${esc(o.client)}<br><b>MÁQUINA:</b> ${esc(o.machine)} &nbsp; <b>MODELO:</b> ${esc(o.model)}<br><b>SERIE:</b> ${esc(o.serial)} &nbsp; <b>OPERARIO:</b> ${esc(o.operator)} &nbsp; <b>FECHA:</b> ${fmtDate(o.date_in)}</div><div class="ttl">TRABAJOS A REALIZAR</div><table class="pt"><tr><th>Trabajo</th><th style="width:50px">Hecho</th><th style="width:210px">Observación / medida</th></tr>${t}</table><div class="ttl">CONTROL DE INGRESO</div><table class="pt"><tr><th>Elemento</th><th style="width:80px">Estado</th><th>Comentario</th></tr>${c}</table><div class="ttl">PIEZAS / REPUESTOS</div><table class="pt"><tr><th style="width:50px">Cant.</th><th>Descripción</th><th style="width:95px">Sector</th><th style="width:55px">Listo</th></tr>${p}</table><div class="ttl">TRABAJOS ENCONTRADOS / ANOTACIONES DE TALLER</div><div class="notes">${esc(o.observations)}</div><div class="sign"><div>FIRMA OPERARIO: ____________________________</div><div>FECHA FINALIZACIÓN: ____________________</div></div>`;window.print()}
-async function backup(){
+async function backup(...args){const run=()=>agroRaw_backup(...args);return typeof window.agroLoading==='function'?window.agroLoading("Preparando respaldo",run):run()}
+async function agroRaw_backup(){
  const [o,t,c,p,ph]=await Promise.all([supabase.from("orders").select("*"),supabase.from("tasks").select("*"),supabase.from("checklist").select("*"),supabase.from("parts").select("*"),supabase.from("photos").select("*")]);
  const data={exported_at:new Date().toISOString(),orders:o.data||[],tasks:t.data||[],checklist:c.data||[],parts:p.data||[],photos:ph.data||[]};const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));a.download="AgroDiseno_respaldo_"+new Date().toISOString().slice(0,10)+".json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)
 }
 
 $("newBtn").onclick=newOrder;$("closeBtn").onclick=closeM;$("addTaskBtn").onclick=()=>addTask();$("addCheckBtn").onclick=()=>addCheck();$("addPartBtn").onclick=()=>addPart();$("saveBtn").onclick=saveOrder;$("del").onclick=delOrder;$("printBtn").onclick=printOrder;$("photoBtn").onclick=()=>current?$("photoFile").click():toast("Guardá primero la orden.");$("photoFile").onchange=uploadPhoto;$("backupBtn").onclick=backup;window.onclick=e=>{if(e.target.id==="modal")closeM()};
 
-const {data:{session}}=await supabase.auth.getSession();
-if(session)await ensureAccess(session);else showLogin();
+try{const {data:{session}}=await supabase.auth.getSession();
+if(session)await ensureAccess(session);else showLogin();}finally{window.agroBootDone?.()}
 supabase.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT")showLogin()});
