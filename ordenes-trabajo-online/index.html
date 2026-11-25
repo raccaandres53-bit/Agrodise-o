@@ -14,8 +14,47 @@
 <script type="importmap">{"imports":{"https://esm.sh/@supabase/supabase-js@2.117.3":"./supabase-shim.js?v=20261028-1145"}}</script>
 <link rel="stylesheet" href="./styles.css?v=20261111-1108">
 <link rel="stylesheet" href="./repuestos.css">
+<style id="agro-loading-style">
+#agroLoader{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .18s ease,visibility .18s;background:rgba(8,9,12,.78);backdrop-filter:blur(5px);color:#fff;font-family:system-ui,sans-serif}
+#agroLoader[data-visible="true"]{opacity:1;visibility:visible}
+#agroLoader[data-boot="true"]{background:#0b0b0d;pointer-events:auto}
+.agro-load-inner{width:min(340px,85vw);text-align:center;padding:28px 22px;border:1px solid #36363c;border-radius:20px;background:#151519;box-shadow:0 24px 90px #0007}
+.agro-load-brand{font-size:26px;letter-spacing:.075em;font-weight:900;color:#fff}.agro-load-brand b{color:#e5333b}
+.agro-load-mark{display:block;margin:24px auto 18px;width:64px;height:64px;animation:agro-turn 2.8s linear infinite}
+.agro-load-label{font-size:15px;font-weight:650;margin:8px 0 16px;color:#fff}
+.agro-load-track{height:4px;background:#333338;border-radius:99px;overflow:hidden}.agro-load-track:after{content:"";display:block;width:38%;height:100%;border-radius:99px;background:#ed333b;animation:agro-scan 1.25s ease-in-out infinite}
+.agro-load-note{font-size:11px;letter-spacing:.13em;color:#aaaab2;margin-top:15px;text-transform:uppercase}
+@keyframes agro-turn{to{transform:rotate(360deg)}}@keyframes agro-scan{0%{transform:translateX(-110%)}100%{transform:translateX(365%)}}
+@keyframes agro-enter{from{opacity:.65;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.view.active,.modal.show .dialog,.learning-app.show,#learningAreaPage:not([hidden]),#learningLessonPage:not([hidden]),#learningQuizPage:not([hidden]){animation:agro-enter .22s ease-out}
+@media(prefers-reduced-motion:reduce){#agroLoader{transition:none}.agro-load-mark,.agro-load-track:after,.view.active,.modal.show .dialog,.learning-app.show,#learningAreaPage,#learningLessonPage,#learningQuizPage{animation:none!important}}
+@media print{#agroLoader{display:none!important}}
+</style>
 </head>
 <body>
+<div id="agroLoader" data-visible="true" data-boot="true" role="status" aria-live="polite" aria-label="Cargando AgroDiseño"><div class="agro-load-inner"><div class="agro-load-brand">AGRO<b>DISEÑO</b></div><svg class="agro-load-mark" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="36" stroke="#39393e" stroke-width="9" fill="none"/><path d="M50 14A36 36 0 0 1 86 50M50 86A36 36 0 0 1 14 50" stroke="#e5333b" stroke-width="9" stroke-linecap="round" fill="none"/><circle cx="50" cy="50" r="12" fill="none" stroke="#d5d5db" stroke-width="5"/><g stroke="#d5d5db" stroke-width="5"><path d="M50 24v12M50 64v12M24 50h12M64 50h12"/></g></svg><div id="agroLoadLabel" class="agro-load-label">Iniciando sistema</div><div class="agro-load-track" aria-hidden="true"></div><div class="agro-load-note">Gestión industrial · AgroDiseño</div></div></div>
+<script>
+(function(){
+ const el=document.getElementById('agroLoader'),label=document.getElementById('agroLoadLabel'),jobs=new Map();
+ let boot=true,seq=0,delay=null;
+ function render(){
+  const last=Array.from(jobs.values()).pop();
+  if(!boot&&!jobs.size){clearTimeout(delay);delay=null;el.dataset.visible='false';el.dataset.boot='false';return}
+  label.textContent=last||(boot?'Iniciando sistema':'Cargando');
+  el.dataset.boot=String(boot);
+  if(boot||el.dataset.visible==='true'){el.dataset.visible='true';return}
+  if(delay===null)delay=setTimeout(()=>{delay=null;if(jobs.size||boot)el.dataset.visible='true'},180);
+ }
+ window.agroBeginLoading=function(message){
+  const id=++seq;jobs.set(id,message);render();let finished=false;
+  return function(){if(finished)return;finished=true;jobs.delete(id);render()};
+ };
+ window.agroLoading=async function(message,run){const done=window.agroBeginLoading(message);try{return await run()}finally{done()}};
+ window.agroBootDone=function(){boot=false;render()};
+ setTimeout(()=>{if(boot){boot=false;render()}},12000);
+ window.addEventListener('pageshow',e=>{if(e.persisted){boot=false;jobs.clear();render()}});
+})();
+</script>
 <div id="login" class="login-wrap">
   <div class="login-card">
     <div class="login-title">AGRO<b>DISEÑO</b></div>
@@ -67,16 +106,16 @@
   <div class="acts"><button class="btn danger" id="del">Eliminar</button><button class="btn dark" id="printBtn">Imprimir planilla</button><button class="btn red" id="saveBtn">Guardar orden</button></div>
 </div></div>
 <div class="print" id="print"></div><div id="toast" class="toast hidden"></div>
-<script type="module" src="./app.js?v=20261111-1108"></script>
+<script type="module" src="./app.js?v=20261125-loading1"></script>
 <script type="module" src="./enhancements.js?v=20261027-1849"></script>
-<script type="module" src="./repuestos.js?v=20261027-2350"></script>
+<script type="module" src="./repuestos.js?v=20261125-loading1"></script>
 <script type="module" src="./proveedores-fantasia.js?v=20261028-0030"></script>
-<script type="module" src="./transportistas.js?v=20261028-0845"></script>
+<script type="module" src="./transportistas.js?v=20261125-loading1"></script>
 <script type="module" src="./transportistas-fantasia.js?v=20261028-0020"></script>
 <script type="module" src="./usuarios-cuentas.js?v=20261027-1849"></script>
 <script type="module" src="./cuentas-registro.js?v=20261027-1849"></script>
 <script type="module" src="./navegacion-estable.js?v=20261028-0001"></script>
-<script type="module" src="./conocimiento-entrada.js?v=20261029-1847"></script>
+<script type="module" src="./conocimiento-entrada.js?v=20261125-loading1"></script>
 <script type="module" src="./aprendizaje.js?v=20261124-phc1"></script>
 <script type="module" src="./pwa-install.js?v=20261028-1145"></script>
 </body>
