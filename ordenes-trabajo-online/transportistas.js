@@ -1,5 +1,5 @@
 import './transportistas-relacion-fix.js';
-import './transportistas-core.js';
+import './transportistas-core.js?v=20261125-loading1';
 import './transportistas-rutas-simple.js';
 import './transportistas-multiples-recorridos.js?v=20261028-0835';
 import './transportistas-modal-fix.js';
