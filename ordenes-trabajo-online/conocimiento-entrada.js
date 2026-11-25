@@ -31,9 +31,10 @@ function addKnowledgeLauncher(){
     btn.dataset.loading='1';
     const original=btn.innerHTML;
     btn.innerHTML='<div class="module-icon">⏳</div><div class="module-name">Cargando...</div><div class="module-desc">Preparando procedimientos y visor 3D.</div>';
+    const done=window.agroBeginLoading?.('Preparando visor y biblioteca 3D');
     try{
       btn.remove();
-      await import('./conocimiento-v5.js?v=20261028-1215');
+      await import('./conocimiento-v5.js?v=20261125-loading1');
       await import('./conocimiento-media.js?v=20261029-1505');
       await import('./conocimiento-visual-pro.js?v=20261029-1635');
       const real=document.getElementById('goKnowledge');
@@ -47,7 +48,7 @@ function addKnowledgeLauncher(){
         btn.dataset.loading='0';
         cards.appendChild(btn);
       }
-    }
+    }finally{done?.()}
   };
 
   cards.appendChild(btn);
