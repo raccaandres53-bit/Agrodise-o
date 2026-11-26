@@ -41,34 +41,39 @@
 </head>
 <body>
 <div id="agroLoader" data-visible="true" data-boot="true" role="status" aria-live="polite" aria-label="Cargando AgroDiseño"><div class="agro-load-inner"><div class="agro-load-brand">AGRO<b>DISEÑO</b></div><div class="agro-load-kicker">Ingeniería · Tecnología · Industria</div>
-<svg class="agro-cut-scene" viewBox="0 0 360 200" aria-hidden="true"><defs><linearGradient id="ad-metal" x2="0" y2="1"><stop stop-color="#30343d"/><stop offset="1" stop-color="#11151d"/></linearGradient><filter id="ad-glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter></defs><path d="M38 49H322L343 163H17Z" fill="url(#ad-metal)" stroke="#50545c"/><path d="M17 163H343V169H17Z" fill="#08090d" stroke="#32353c"/><g stroke="#ffffff" opacity=".055"><path d="M44 72H316M37 95H323M30 118H330M24 141H336M95 49L78 163M150 49L146 163M210 49L214 163M265 49L282 163"/></g><path d="M88 103L119 64H245L272 103L245 142H119Z" fill="none" stroke="#60646c" stroke-dasharray="4 5"/><path class="agro-cut-trace" d="M88 103L119 64H245L272 103L245 142H119Z" fill="none" stroke="#ff4937" stroke-width="5" filter="url(#ad-glow)"/><path class="agro-cut-trace" d="M88 103L119 64H245L272 103L245 142H119Z" fill="none" stroke="#ff9c64" stroke-width="1.7"/><g class="agro-cut-head" transform="translate(88 103)"><g><path d="M-10 -49H10V-29L5 -19H-5L-10 -29Z" fill="#727986" stroke="#b0b6bf"/><path d="M-5 -19H5L2 -13H-2Z" fill="#c2c8d0"/><path d="M0 -13V0" stroke="#ff4133" stroke-width="2.5"/><circle r="8" fill="#ff633d" filter="url(#ad-glow)"/><circle r="2.8" fill="#fff4c8"/><g class="agro-cut-sparks" stroke="#ffc36a" stroke-linecap="round"><path d="M-5 4L-20 12M5 2L24 7M3 6L12 19M-3 7L-9 23M-6 -2L-19 -7M7 -2L17 -9"/></g></g></g><path d="M38 35H322" stroke="#50545c" stroke-width="5"/><path d="M38 35V49M322 35V49" stroke="#50545c" stroke-width="4"/></svg>
+<canvas class="agro-cut-scene" id="agroCutCanvas" width="720" height="400" aria-hidden="true"></canvas>
 <div id="agroLoadLabel" class="agro-load-label">Iniciando sistema</div><div class="agro-load-track" aria-hidden="true"></div><div id="agroLoadNote" class="agro-load-note">Preparando entorno de trabajo</div></div></div>
 <script>
 (function(){
  const el=document.getElementById('agroLoader'),label=document.getElementById('agroLoadLabel'),note=document.getElementById('agroLoadNote'),jobs=new Map();
  const minimum=5000;let boot=true,seq=0,hideTimer=null,shownAt=performance.now();
- const head=el.querySelector('.agro-cut-head'),traces=[...el.querySelectorAll('.agro-cut-trace')];
- const route=traces[0],length=route.getTotalLength();
- const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
+ const canvas=document.getElementById('agroCutCanvas'),ctx=canvas.getContext('2d');
+ const points=[[88,103],[119,64],[245,64],[272,103],[245,142],[119,142],[88,103]];
+ const lengths=points.slice(1).map((p,i)=>Math.hypot(p[0]-points[i][0],p[1]-points[i][1]));
+ const total=lengths.reduce((a,b)=>a+b,0);
  let frame=0,animationStart=null;
- function paint(progress){
-  const distance=length*progress,point=route.getPointAtLength(distance);
-  head.setAttribute('transform','translate('+point.x+' '+point.y+')');
-  for(const trace of traces){trace.style.strokeDasharray=String(length);trace.style.strokeDashoffset=String(length-distance)}
+ function paint(progress,time=0){
+  if(!ctx)return;
+  ctx.setTransform(2,0,0,2,0,0);ctx.clearRect(0,0,360,200);
+  function line(coords,color,width=1,fill=null){ctx.beginPath();coords.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));if(fill){ctx.closePath();ctx.fillStyle=fill;ctx.fill()}ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke()}
+  const metal=ctx.createLinearGradient(0,49,0,163);metal.addColorStop(0,'#343943');metal.addColorStop(1,'#11151d');
+  line([[38,49],[322,49],[343,163],[17,163]],'#50545c',1,metal);
+  line([[17,163],[343,163],[343,169],[17,169]],'#32353c',1,'#08090d');
+  for(let y=72;y<=141;y+=23)line([[38-(y-49)*.18,y],[322+(y-49)*.18,y]],'#ffffff12');
+  ctx.setLineDash([4,5]);line(points,'#60646c');ctx.setLineDash([]);
+  let left=total*progress,cut=[points[0]],position=points[0];
+  for(let i=0;i<lengths.length;i++){const f=Math.min(1,left/lengths[i]);position=[points[i][0]+(points[i+1][0]-points[i][0])*f,points[i][1]+(points[i+1][1]-points[i][1])*f];cut.push(position);left-=lengths[i]*f;if(f<1)break}
+  ctx.shadowColor='#ff492f';ctx.shadowBlur=12;line(cut,'#ff6541',2.4);ctx.shadowBlur=0;line(cut,'#ffbd85',1.2);
+  line([[38,35],[322,35]],'#50545c',5);line([[38,35],[38,49]],'#50545c',4);line([[322,35],[322,49]],'#50545c',4);
+  ctx.save();ctx.translate(...position);
+  line([[-10,-49],[10,-49],[10,-29],[5,-19],[-5,-19],[-10,-29]],'#b0b6bf',1,'#727986');
+  line([[-5,-19],[5,-19],[2,-13],[-2,-13]],'#c2c8d0',1,'#aeb5c0');
+  ctx.shadowColor='#ff4028';ctx.shadowBlur=10;line([[0,-13],[0,0]],'#ff4533',2.5);ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fillStyle='#fff4c8';ctx.fill();ctx.shadowBlur=0;
+  for(let i=0;i<18;i++){const phase=(time/350+i*.173)%1,angle=i*2.399;const radius=3+phase*23;ctx.globalAlpha=1-phase;line([[Math.cos(angle)*radius,Math.sin(angle)*radius],[Math.cos(angle)*(radius+5),Math.sin(angle)*(radius+5)]],i%3?'#ffc36a':'#fff4c8',1.3)}
+  ctx.restore();
  }
  function stopAnimation(){if(frame)cancelAnimationFrame(frame);frame=0;animationStart=null}
- function startAnimation(){
-  stopAnimation();paint(0);
-  if(reduced.matches){paint(1);return}
-  function tick(now){
-   if(el.dataset.visible!=='true'){stopAnimation();return}
-   if(animationStart===null)animationStart=now;
-   const elapsed=now-animationStart;
-   paint(Math.min(1,(elapsed%5000)/4500));
-   frame=requestAnimationFrame(tick);
-  }
-  frame=requestAnimationFrame(tick);
- }
+ function startAnimation(){stopAnimation();paint(0);function tick(now){if(el.dataset.visible!=='true'){stopAnimation();return}if(animationStart===null)animationStart=now;const elapsed=now-animationStart;paint(Math.min(1,(elapsed%5000)/4500),elapsed);frame=requestAnimationFrame(tick)}frame=requestAnimationFrame(tick)}
  startAnimation();
 
  function render(){
