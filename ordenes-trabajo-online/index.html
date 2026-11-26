@@ -22,8 +22,8 @@
 .agro-load-brand{font-size:clamp(28px,7vw,43px);letter-spacing:.08em;font-weight:900;color:#f5f5f7;line-height:1.1}.agro-load-brand b{color:#ef333c}
 .agro-load-kicker{font-size:10px;letter-spacing:.28em;color:#9ca3af;margin-top:10px;text-transform:uppercase}
 .agro-cut-scene{width:100%;height:auto;display:block;margin:18px auto 10px;overflow:visible}
-.agro-cut-trace{stroke-dasharray:440;stroke-dashoffset:440;animation:agro-trace 5s linear infinite}
-.agro-cut-head{offset-path:path("M 88 103 L 119 64 L 245 64 L 272 103 L 245 142 L 119 142 Z");offset-rotate:0deg;animation:agro-head 5s linear infinite}
+.agro-cut-trace{stroke-dasharray:440;stroke-dashoffset:440}
+.agro-cut-head{will-change:transform}
 .agro-cut-sparks{animation:agro-sparks .65s ease-out infinite;transform-origin:0 0}
 .agro-load-label{font-size:15px;font-weight:650;margin:12px 0;color:#f4f4f5}
 .agro-load-track{height:3px;background:#272a31;border-radius:99px;overflow:hidden}.agro-load-track:after{content:"";display:block;width:40%;height:100%;border-radius:99px;background:linear-gradient(90deg,transparent,#f1323c,#ffb66c);animation:agro-scan 1.6s ease-in-out infinite}
@@ -41,23 +41,47 @@
 </head>
 <body>
 <div id="agroLoader" data-visible="true" data-boot="true" role="status" aria-live="polite" aria-label="Cargando AgroDiseño"><div class="agro-load-inner"><div class="agro-load-brand">AGRO<b>DISEÑO</b></div><div class="agro-load-kicker">Ingeniería · Tecnología · Industria</div>
-<svg class="agro-cut-scene" viewBox="0 0 360 200" aria-hidden="true"><defs><linearGradient id="ad-metal" x2="0" y2="1"><stop stop-color="#30343d"/><stop offset="1" stop-color="#11151d"/></linearGradient><filter id="ad-glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter></defs><path d="M38 49H322L343 163H17Z" fill="url(#ad-metal)" stroke="#50545c"/><path d="M17 163H343V169H17Z" fill="#08090d" stroke="#32353c"/><g stroke="#ffffff" opacity=".055"><path d="M44 72H316M37 95H323M30 118H330M24 141H336M95 49L78 163M150 49L146 163M210 49L214 163M265 49L282 163"/></g><path d="M88 103L119 64H245L272 103L245 142H119Z" fill="none" stroke="#60646c" stroke-dasharray="4 5"/><path class="agro-cut-trace" d="M88 103L119 64H245L272 103L245 142H119Z" fill="none" stroke="#ff4937" stroke-width="5" filter="url(#ad-glow)"/><path class="agro-cut-trace" d="M88 103L119 64H245L272 103L245 142H119Z" fill="none" stroke="#ff9c64" stroke-width="1.7"/><g class="agro-cut-head"><g><path d="M-10 -49H10V-29L5 -19H-5L-10 -29Z" fill="#727986" stroke="#b0b6bf"/><path d="M-5 -19H5L2 -13H-2Z" fill="#c2c8d0"/><path d="M0 -13V0" stroke="#ff4133" stroke-width="2.5"/><circle r="8" fill="#ff633d" filter="url(#ad-glow)"/><circle r="2.8" fill="#fff4c8"/><g class="agro-cut-sparks" stroke="#ffc36a" stroke-linecap="round"><path d="M-5 4L-20 12M5 2L24 7M3 6L12 19M-3 7L-9 23M-6 -2L-19 -7M7 -2L17 -9"/></g></g></g><path d="M38 35H322" stroke="#50545c" stroke-width="5"/><path d="M38 35V49M322 35V49" stroke="#50545c" stroke-width="4"/></svg>
+<svg class="agro-cut-scene" viewBox="0 0 360 200" aria-hidden="true"><defs><linearGradient id="ad-metal" x2="0" y2="1"><stop stop-color="#30343d"/><stop offset="1" stop-color="#11151d"/></linearGradient><filter id="ad-glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter></defs><path d="M38 49H322L343 163H17Z" fill="url(#ad-metal)" stroke="#50545c"/><path d="M17 163H343V169H17Z" fill="#08090d" stroke="#32353c"/><g stroke="#ffffff" opacity=".055"><path d="M44 72H316M37 95H323M30 118H330M24 141H336M95 49L78 163M150 49L146 163M210 49L214 163M265 49L282 163"/></g><path d="M88 103L119 64H245L272 103L245 142H119Z" fill="none" stroke="#60646c" stroke-dasharray="4 5"/><path class="agro-cut-trace" d="M88 103L119 64H245L272 103L245 142H119Z" fill="none" stroke="#ff4937" stroke-width="5" filter="url(#ad-glow)"/><path class="agro-cut-trace" d="M88 103L119 64H245L272 103L245 142H119Z" fill="none" stroke="#ff9c64" stroke-width="1.7"/><g class="agro-cut-head" transform="translate(88 103)"><g><path d="M-10 -49H10V-29L5 -19H-5L-10 -29Z" fill="#727986" stroke="#b0b6bf"/><path d="M-5 -19H5L2 -13H-2Z" fill="#c2c8d0"/><path d="M0 -13V0" stroke="#ff4133" stroke-width="2.5"/><circle r="8" fill="#ff633d" filter="url(#ad-glow)"/><circle r="2.8" fill="#fff4c8"/><g class="agro-cut-sparks" stroke="#ffc36a" stroke-linecap="round"><path d="M-5 4L-20 12M5 2L24 7M3 6L12 19M-3 7L-9 23M-6 -2L-19 -7M7 -2L17 -9"/></g></g></g><path d="M38 35H322" stroke="#50545c" stroke-width="5"/><path d="M38 35V49M322 35V49" stroke="#50545c" stroke-width="4"/></svg>
 <div id="agroLoadLabel" class="agro-load-label">Iniciando sistema</div><div class="agro-load-track" aria-hidden="true"></div><div id="agroLoadNote" class="agro-load-note">Preparando entorno de trabajo</div></div></div>
 <script>
 (function(){
  const el=document.getElementById('agroLoader'),label=document.getElementById('agroLoadLabel'),note=document.getElementById('agroLoadNote'),jobs=new Map();
  const minimum=5000;let boot=true,seq=0,hideTimer=null,shownAt=performance.now();
+ const head=el.querySelector('.agro-cut-head'),traces=[...el.querySelectorAll('.agro-cut-trace')];
+ const route=traces[0],length=route.getTotalLength();
+ const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
+ let frame=0,animationStart=null;
+ function paint(progress){
+  const distance=length*progress,point=route.getPointAtLength(distance);
+  head.setAttribute('transform','translate('+point.x+' '+point.y+')');
+  for(const trace of traces){trace.style.strokeDasharray=String(length);trace.style.strokeDashoffset=String(length-distance)}
+ }
+ function stopAnimation(){if(frame)cancelAnimationFrame(frame);frame=0;animationStart=null}
+ function startAnimation(){
+  stopAnimation();paint(0);
+  if(reduced.matches){paint(1);return}
+  function tick(now){
+   if(el.dataset.visible!=='true'){stopAnimation();return}
+   if(animationStart===null)animationStart=now;
+   const elapsed=now-animationStart;
+   paint(Math.min(1,(elapsed%5000)/4500));
+   frame=requestAnimationFrame(tick);
+  }
+  frame=requestAnimationFrame(tick);
+ }
+ startAnimation();
+
  function render(){
   clearTimeout(hideTimer);hideTimer=null;
   const last=Array.from(jobs.values()).pop();
   if(boot||jobs.size){
-   if(el.dataset.visible!=='true'){shownAt=performance.now();el.dataset.visible='true'}
+   if(el.dataset.visible!=='true'){shownAt=performance.now();el.dataset.visible='true';startAnimation()}
    el.dataset.boot=String(boot);label.textContent=last||'Iniciando sistema';note.textContent='Procesando información';return;
   }
   if(el.dataset.visible!=='true')return;
   note.textContent='Preparando pantalla';
   const remaining=Math.max(0,minimum-(performance.now()-shownAt));
-  const hide=()=>{if(!boot&&!jobs.size){el.dataset.visible='false';el.dataset.boot='false'}};
+  const hide=()=>{if(!boot&&!jobs.size){el.dataset.visible='false';el.dataset.boot='false';stopAnimation()}};
   if(remaining)hideTimer=setTimeout(hide,remaining);else hide();
  }
  window.agroBeginLoading=function(message){const id=++seq;jobs.set(id,message);render();let finished=false;return function(){if(finished)return;finished=true;jobs.delete(id);render()}};
@@ -72,7 +96,7 @@
   const name=(button.querySelector('.module-name')?.textContent||button.textContent||'módulo').trim();
   const done=window.agroBeginLoading('Abriendo '+name);
   // Existing async operations keep their own jobs active. Never delay their execution.
-  queueMicrotask(done);
+  Promise.resolve().then(done);
  }
  document.addEventListener('click',agroModuleEntry,true);
 
