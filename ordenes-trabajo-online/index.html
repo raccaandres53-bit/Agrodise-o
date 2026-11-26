@@ -49,7 +49,17 @@
  const minimum=5000;let boot=true,seq=0,hideTimer=null,shownAt=performance.now();
  const img=document.getElementById('agroCutImage');
  function stopAnimation(){}
- function startAnimation(){img.src='./loader-laser-animated.svg?v=1&cycle='+encodeURIComponent(String(Date.now())+'-'+seq)}
+ const animations=['laser','bend','lathe','weld'];
+ let lastAnimation=null;
+ try{lastAnimation=sessionStorage.getItem('agroLastLoader')}catch{}
+ function startAnimation(){
+  const choices=animations.filter(a=>a!==lastAnimation);
+  const next=choices[Math.floor(Math.random()*choices.length)];
+  lastAnimation=next;
+  try{sessionStorage.setItem('agroLastLoader',next)}catch{}
+  img.src='./loader-'+next+'-animated.svg?v=1&cycle='+encodeURIComponent(String(Date.now())+'-'+seq);
+ }
+
  startAnimation();
 
  function render(){
